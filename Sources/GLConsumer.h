@@ -30,6 +30,6 @@ private:
 	std::vector<GLMesh> m_meshes;
 	std::map<std::string, GLTexture> m_textureLoaded;
 
-	std::vector<GLTexture> loadMaterialTextures(const cd::SceneDatabase* pSceneDatabase, const cd::Material& material, const cd::MaterialTextureType textureType);
+	std::vector<GLTexture> LoadMaterialTextures(const cd::SceneDatabase* pSceneDatabase, const cd::Material& material, const cd::MaterialTextureType textureType);
 	unsigned int TextureFromFile(const char* path, const std::string& directory);
 };

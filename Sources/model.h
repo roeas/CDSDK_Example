@@ -11,7 +11,7 @@ public:
     void Draw(Shader &shader) const;
 
 private:
-    void loadModel(const char* path);
+    void LoadModel(const char* path);
 
     std::vector<GLMesh> m_meshes;
 };

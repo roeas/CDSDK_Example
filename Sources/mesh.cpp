@@ -1,11 +1,11 @@
 #include "mesh.h"
 
 GLMesh::GLMesh(std::vector<GLVertex> &vertices, std::vector<unsigned int> &indices, std::vector<GLTexture> &textures) {
-    this->vertices = std::move(vertices);
-    this->indices = std::move(indices);
-    this->textures = std::move(textures);
+    this->m_vertices = std::move(vertices);
+    this->m_indices = std::move(indices);
+    this->m_textures = std::move(textures);
 
-    setupMesh();
+    SetupMesh();
 }
 
 void GLMesh::Draw(Shader &shader) const {
@@ -15,45 +15,45 @@ void GLMesh::Draw(Shader &shader) const {
     unsigned int normalNr = 1;
     unsigned int heightNr = 1;
     unsigned int reflectionNr = 1;
-    for (unsigned int i = 0; i < textures.size(); ++i) {
+    for (unsigned int i = 0; i < m_textures.size(); ++i) {
         glActiveTexture(GL_TEXTURE0 + i);
 
-        cd::MaterialTextureType type = textures[i].type;
+        cd::MaterialTextureType type = m_textures[i].m_type;
         if (type == cd::MaterialTextureType::BaseColor) {
-            shader.setInt("s_texBaseColor", i);
+            shader.SetInt("s_texBaseColor", i);
         }
         else if (type == cd::MaterialTextureType::Normal) {
-            shader.setInt("s_texNormal", i);
+            shader.SetInt("s_texNormal", i);
         }
         else if (type == cd::MaterialTextureType::Metalness) {
-            shader.setInt("s_texORM", i);
+            shader.SetInt("s_texORM", i);
         }
 
-        glBindTexture(GL_TEXTURE_2D, textures[i].id);
+        glBindTexture(GL_TEXTURE_2D, m_textures[i].m_id);
     }
 
     // Draw Elements
-    glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0);
+    glBindVertexArray(m_VAO);
+    glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(m_indices.size()), GL_UNSIGNED_INT, 0);
 
     glBindVertexArray(0);
     glActiveTexture(GL_TEXTURE0);
 }
 
-void GLMesh::setupMesh() {
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
+void GLMesh::SetupMesh() {
+    glGenVertexArrays(1, &m_VAO);
+    glGenBuffers(1, &m_VBO);
+    glGenBuffers(1, &m_EBO);
 
-    glBindVertexArray(VAO);
+    glBindVertexArray(m_VAO);
 
     // VBO
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLVertex), &vertices[0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+    glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(GLVertex), &m_vertices[0], GL_STATIC_DRAW);
 
     // EBO
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(unsigned int), &m_indices[0], GL_STATIC_DRAW);
 
     // Position
     glEnableVertexAttribArray(0);
@@ -61,15 +61,15 @@ void GLMesh::setupMesh() {
     
     // Normal
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GLVertex), (void *)offsetof(GLVertex, Normal));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GLVertex), (void *)offsetof(GLVertex, m_normal));
     
     // UV
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(GLVertex), (void *)offsetof(GLVertex, TexCoords));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(GLVertex), (void *)offsetof(GLVertex, m_texCoords));
     
     // Tangent
     glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(GLVertex), (void *)offsetof(GLVertex, Tangent));
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(GLVertex), (void *)offsetof(GLVertex, m_tangent));
     
     glBindVertexArray(0);
 }

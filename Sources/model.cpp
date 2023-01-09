@@ -1,7 +1,7 @@
 #include "model.h"
 
 GLModel::GLModel(const char* path) {
-    loadModel(path);
+    LoadModel(path);
 }
 
 void GLModel::Draw(Shader &shader) const {
@@ -10,7 +10,7 @@ void GLModel::Draw(Shader &shader) const {
     }
 }
 
-void GLModel::loadModel(const char* path) {
+void GLModel::LoadModel(const char* path) {
     cdtools::CDProducer producer(path);
     GLConsumer consumer("");
     cdtools::Processor processor(&producer, &consumer);

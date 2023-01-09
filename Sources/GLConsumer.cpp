@@ -30,10 +30,10 @@ void GLConsumer::Execute(const cd::SceneDatabase* pSceneDatabase) {
 			const cd::UV& uv = mesh.GetVertexUV(0)[vertexIndex];
 
 			GLVertex vertex;
-			std::memcpy(&vertex.Position, &position, 3 * sizeof(float));
-			std::memcpy(&vertex.Normal, &normal, 3 * sizeof(float));
-			std::memcpy(&vertex.Tangent, &tangent, 3 * sizeof(float));
-			std::memcpy(&vertex.TexCoords, &uv, 2 * sizeof(float));
+			std::memcpy(&vertex.m_position, &position, 3 * sizeof(float));
+			std::memcpy(&vertex.m_normal, &normal, 3 * sizeof(float));
+			std::memcpy(&vertex.m_tangent, &tangent, 3 * sizeof(float));
+			std::memcpy(&vertex.m_texCoords, &uv, 2 * sizeof(float));
 			
 			vertices.emplace_back(std::move(vertex));
 		}
@@ -49,7 +49,7 @@ void GLConsumer::Execute(const cd::SceneDatabase* pSceneDatabase) {
 		// 3. textures
 		const cd::Material& material = pSceneDatabase->GetMaterial(meshIndex);
 		for (const cd::MaterialTextureType& textureType : PossibleTextureTypes) {
-			std::vector<GLTexture> typeTextures = loadMaterialTextures(pSceneDatabase, material, textureType);
+			std::vector<GLTexture> typeTextures = LoadMaterialTextures(pSceneDatabase, material, textureType);
 			textures.insert(textures.end(), typeTextures.begin(), typeTextures.end());
 		}
 
@@ -57,7 +57,7 @@ void GLConsumer::Execute(const cd::SceneDatabase* pSceneDatabase) {
 	}
 }
 
-std::vector<GLTexture> GLConsumer::loadMaterialTextures(const cd::SceneDatabase* pSceneDatabase, const cd::Material& material, const cd::MaterialTextureType textureType) {
+std::vector<GLTexture> GLConsumer::LoadMaterialTextures(const cd::SceneDatabase* pSceneDatabase, const cd::Material& material, const cd::MaterialTextureType textureType) {
 	std::vector<GLTexture> textures;
 
 	const std::optional<cd::TextureID>& textureID = material.GetTextureID(textureType);
@@ -72,9 +72,9 @@ std::vector<GLTexture> GLConsumer::loadMaterialTextures(const cd::SceneDatabase*
 		}
 		else {
 			GLTexture texture;
-			texture.id = TextureFromFile(texturePath.c_str(), "Models");
-			texture.type = textureType;
-			texture.path = texturePath;
+			texture.m_id = TextureFromFile(texturePath.c_str(), "Models");
+			texture.m_type = textureType;
+			texture.m_path = texturePath;
 			m_textureLoaded[textureName] = texture;
 			textures.emplace_back(std::move(texture));
 		}
