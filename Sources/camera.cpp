@@ -51,7 +51,6 @@ void Camera::ProcessMouseMovement(float xoffset, float yoffset) {
     if (Pitch < -89.9f)
         Pitch = -89.9f;
 
-    // 使用新的 Yaw 和 Pitch 更新相机朝向
     updateCameraVectors();
 }
 

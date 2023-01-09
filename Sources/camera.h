@@ -6,7 +6,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-// 相机移动操作
 enum Camera_Movement {
     FORWARD,
     BACKWARD,
@@ -41,19 +40,12 @@ public:
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH);
     Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch);
 
-    // 使用 LookAt 返回 View 矩阵
     glm::mat4 GetViewMatrix();
 
-    // 键盘移动相机
     void ProcessKeyboard(Camera_Movement direction, float deltaTime);
-
-    // 鼠标移动相机
     void ProcessMouseMovement(float xoffset, float yoffset);
-
-    // 鼠标缩放 fov
     void ProcessMouseScroll(float yoffset);
 
 private:
-    // 根据角度计算相机朝向
     void updateCameraVectors();
 };

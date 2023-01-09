@@ -28,14 +28,14 @@ int main()
 
     GLFWwindow* window = glfwCreateWindow(800, 600, "CDSKD_Example", NULL, NULL);
     if (window == NULL) {
-        std::cout << "Failed to create GLFW window" << std::endl;
+        printf("Failed to create GLFW window\n");
         glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        printf("Failed to initialize GLAD\n");
         return -1;
     }
 
@@ -49,7 +49,7 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     glEnable(GL_MULTISAMPLE);
-    //glEnable(GL_FRAMEBUFFER_SRGB);
+    glEnable(GL_FRAMEBUFFER_SRGB);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -65,7 +65,7 @@ int main()
 
         processInput(window, deltaTime);
 
-        glClearColor(0.3f, 0.4f, 0.5f, 1.0f);
+        glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.0f / 600.0f, 0.1f, 100.0f);
@@ -99,7 +99,7 @@ int main()
         pbrShader.setFloat("u_lights[2].range", 1024.0f);
 
         pbrShader.setInt("u_lights[3].type", 1);
-        pbrShader.setFloat("u_lights[3].intensity", 2.5f);
+        pbrShader.setFloat("u_lights[3].intensity", 0.8f);
         pbrShader.setVec3("u_lights[3].color", glm::vec3(1.0f, 1.0f, 1.0f));
         pbrShader.setFloat("u_lights[3].range", 1024.0f);
         pbrShader.setVec3("u_lights[3].direction", glm::vec3(0.0f, 0.0f, -1.0f));

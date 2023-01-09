@@ -7,11 +7,11 @@
 class GLModel
 {
 public:
-    GLModel(std::string const &path, bool gamma = false);
+    GLModel(const char *path);
     void Draw(Shader &shader) const;
 
 private:
-    void loadModel(std::string const &path);
+    void loadModel(const char* path);
 
     std::vector<GLMesh> m_meshes;
 };
