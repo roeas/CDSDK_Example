@@ -8,6 +8,7 @@ class GLModel
 {
 public:
     GLModel(const char *path);
+
     void Draw(Shader &shader) const;
 
 private:

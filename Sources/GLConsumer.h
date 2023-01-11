@@ -23,6 +23,7 @@ public:
 	virtual ~GLConsumer() = default;
 
 	virtual void Execute(const cd::SceneDatabase* pSceneDatabase) override;
+
 	std::vector<GLMesh>&& GetMeshes() { return cd::MoveTemp(m_meshes); }
 
 private:
@@ -31,5 +32,6 @@ private:
 	std::map<std::string, GLTexture> m_textureLoaded;
 
 	std::vector<GLTexture> LoadMaterialTextures(const cd::SceneDatabase* pSceneDatabase, const cd::Material& material, const cd::MaterialTextureType textureType);
+	
 	unsigned int TextureFromFile(const char* path, const std::string& directory);
 };
