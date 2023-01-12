@@ -18,10 +18,13 @@
     <ClCompile Include="CDSDK_Example.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\camera.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\glad.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\camera.cpp">
+    <ClCompile Include="Sources\GLConsumer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Sources\mesh.cpp">
@@ -33,12 +36,12 @@
     <ClCompile Include="Sources\shader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\GLConsumer.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Sources\camera.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Sources\GLConsumer.h">
       <Filter>源文件</Filter>
     </ClInclude>
     <ClInclude Include="Sources\mesh.h">
@@ -51,9 +54,6 @@
       <Filter>源文件</Filter>
     </ClInclude>
     <ClInclude Include="Sources\stb_image.h">
-      <Filter>源文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Sources\GLConsumer.h">
       <Filter>源文件</Filter>
     </ClInclude>
   </ItemGroup>
