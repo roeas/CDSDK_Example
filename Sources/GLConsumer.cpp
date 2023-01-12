@@ -47,7 +47,8 @@ void GLConsumer::Execute(const cd::SceneDatabase* pSceneDatabase) {
 		}
 
 		// 3. textures
-		const cd::Material& material = pSceneDatabase->GetMaterial(meshIndex);
+		auto materialID = mesh.GetMaterialID();
+		const cd::Material& material = pSceneDatabase->GetMaterial(materialID.Data());
 		for (const cd::MaterialTextureType& textureType : PossibleTextureTypes) {
 			std::vector<GLTexture> typeTextures = LoadMaterialTextures(pSceneDatabase, material, textureType);
 			textures.insert(textures.end(), typeTextures.begin(), typeTextures.end());
