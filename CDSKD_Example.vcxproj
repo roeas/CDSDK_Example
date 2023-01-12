@@ -24,6 +24,7 @@
     <ProjectGuid>{41fd3714-a52f-41bf-8a58-a7af864b329c}</ProjectGuid>
     <RootNamespace>CDSKDExample</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>CDSDK_Example</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -135,7 +136,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CDSKD_Example.cpp" />
+    <ClCompile Include="CDSDK_Example.cpp" />
     <ClCompile Include="Sources\camera.cpp" />
     <ClCompile Include="Sources\glad.c" />
     <ClCompile Include="Sources\GLConsumer.cpp" />
