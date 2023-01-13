@@ -8,14 +8,23 @@ constexpr cd::MaterialTextureType PossibleTextureTypes[] = {
 
 void GLConsumer::Execute(const cd::SceneDatabase* pSceneDatabase) {
 	printf("Loading scene : %s\n", pSceneDatabase->GetName());
-	const std::vector<cd::Mesh>& meshes = pSceneDatabase->GetMeshes();
-	printf("Mesh count : %llu\n", meshes.size());
+	printf("Mesh count : %d\n", pSceneDatabase->GetMeshCount());
+	printf("Material count : %d\n", pSceneDatabase->GetMaterialCount());
+	printf("Texture count : %d\n", pSceneDatabase->GetTextureCount());
+	printf("Light count : %d\n", pSceneDatabase->GetLightCount());
+	const cd::AABB& sceneAABB = pSceneDatabase->GetAABB();
+	printf("Scene AABB min : (%f, %f, %f), max : (%f, %f, %f)\n",
+		sceneAABB.Min().x(), sceneAABB.Min().y(), sceneAABB.Min().z(),
+		sceneAABB.Max().x(), sceneAABB.Max().y(), sceneAABB.Max().z());
 
+	const std::vector<cd::Mesh>& meshes = pSceneDatabase->GetMeshes();
 	for (uint32_t meshIndex = 0; meshIndex < pSceneDatabase->GetMeshCount(); ++meshIndex) {
 		const cd::Mesh& mesh = meshes[meshIndex];
-		printf("\tMeshName : %s\n", mesh.GetName());
-		printf("\t\tVertexCount : %u\n", mesh.GetVertexCount());
-		printf("\t\tPolygonCount : %u\n\n", mesh.GetPolygonCount());
+		printf("\n\tMesh ID : %d\n", mesh.GetID().Data());
+
+		printf("\t\tMesh Name : %s\n", mesh.GetName());
+		printf("\t\tVertex Count : %d\n", mesh.GetVertexCount());
+		printf("\t\tPolygon Count : %d\n", mesh.GetPolygonCount());
 
 		std::vector<GLVertex> vertices;
 		std::vector<unsigned int> indices;
@@ -30,11 +39,11 @@ void GLConsumer::Execute(const cd::SceneDatabase* pSceneDatabase) {
 			const cd::UV& uv = mesh.GetVertexUV(0)[vertexIndex];
 
 			GLVertex vertex;
-			std::memcpy(&vertex.m_position, &position, 3 * sizeof(float));
-			std::memcpy(&vertex.m_normal, &normal, 3 * sizeof(float));
-			std::memcpy(&vertex.m_tangent, &tangent, 3 * sizeof(float));
-			std::memcpy(&vertex.m_texCoords, &uv, 2 * sizeof(float));
-			
+			memcpy(&vertex.m_position, &position, 3 * sizeof(float));
+			memcpy(&vertex.m_normal, &normal, 3 * sizeof(float));
+			memcpy(&vertex.m_tangent, &tangent, 3 * sizeof(float));
+			memcpy(&vertex.m_texCoords, &uv, 2 * sizeof(float));
+
 			vertices.emplace_back(std::move(vertex));
 		}
 
@@ -47,8 +56,12 @@ void GLConsumer::Execute(const cd::SceneDatabase* pSceneDatabase) {
 		}
 
 		// 3. textures
-		auto materialID = mesh.GetMaterialID();
+		const cd::MaterialID& materialID = mesh.GetMaterialID();
+		printf("\n\t\tMaterial ID : %d\n", materialID.Data());
 		const cd::Material& material = pSceneDatabase->GetMaterial(materialID.Data());
+		assert(materialID.Data() == material.GetID().Data());
+
+		printf("\t\t\tMaterial name : %s\n\n", material.GetName());
 		for (const cd::MaterialTextureType& textureType : PossibleTextureTypes) {
 			std::vector<GLTexture> typeTextures = LoadMaterialTextures(pSceneDatabase, material, textureType);
 			textures.insert(textures.end(), typeTextures.begin(), typeTextures.end());
@@ -65,7 +78,7 @@ std::vector<GLTexture> GLConsumer::LoadMaterialTextures(const cd::SceneDatabase*
 	if (textureID.has_value()) {
 		const std::string& texturePath = pSceneDatabase->GetTexture(textureID->Data()).GetPath();
 		std::string textureName = texturePath.substr(texturePath.rfind('/') + 1, texturePath.rfind('.') - texturePath.rfind('/') - 1);
-		printf("\t\tTexture Name: %s\n", textureName.c_str());
+		printf("\t\t\tTexture Name: %s\n", textureName.c_str());
 
 		const auto it = m_textureLoaded.find(textureName);
 		if (it != m_textureLoaded.end()) {
@@ -81,7 +94,7 @@ std::vector<GLTexture> GLConsumer::LoadMaterialTextures(const cd::SceneDatabase*
 		}
 	}
 	else {
-		printf("\t\tTexture Name: UnknownMaterial\n");
+		printf("\t\t\tTexture Name: UnknownMaterial\n");
 	}
 
 	return textures;
@@ -90,7 +103,7 @@ std::vector<GLTexture> GLConsumer::LoadMaterialTextures(const cd::SceneDatabase*
 unsigned int GLConsumer::TextureFromFile(const char* path, const std::string& directory) {
 	std::string filename(path);
 	filename = directory + '/' + filename;
-	printf("\t\tTexture Path: %s\n\n", filename.c_str());
+	printf("\t\t\t[Read File] Texture Path: %s\n", filename.c_str());
 
 	unsigned int textureID;
 	glGenTextures(1, &textureID);
@@ -115,7 +128,7 @@ unsigned int GLConsumer::TextureFromFile(const char* path, const std::string& di
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
 	else {
-		printf("\t\tTexture failed to load at path: %s\n\n", filename.c_str());
+		printf("\t\t\tTexture failed to load at path: %s\n\n", filename.c_str());
 	}
 	stbi_image_free(data);
 
