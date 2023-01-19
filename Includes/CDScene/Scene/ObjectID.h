@@ -27,6 +27,7 @@ public:
 	ObjectID& operator=(ObjectID&&) = default;
 	~ObjectID() = default;
 	const T& Data() const { return m_id; }
+	void Set(T id) { m_id = id; }
 
 	ObjectID& operator=(T id) { m_id = id; return *this; } 
 	bool IsValid() const { return m_id != InvalidID; }
@@ -40,11 +41,12 @@ private:
 };
 
 using VertexID = ObjectID<uint32_t, ObjectType::Vertex>;
-using EdgeID = ObjectID<uint32_t, ObjectType::Edge>;
 using PolygonID = ObjectID<uint32_t, ObjectType::Polygon>;
 using MeshID = ObjectID<uint32_t, ObjectType::Mesh>;
 using MaterialID = ObjectID<uint32_t, ObjectType::Material>;
 using TextureID = ObjectID<uint32_t, ObjectType::Texture>;
 using LightID = ObjectID<uint32_t, ObjectType::Light>;
+using NodeID = ObjectID<uint32_t, ObjectType::Node>;
+using CameraID = ObjectID<uint32_t, ObjectType::Camera>;
 
 }

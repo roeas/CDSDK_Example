@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CDSDK_Example.cpp">
+    <ClCompile Include="Sources\camera.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\camera.cpp">
+    <ClCompile Include="Sources\CDSDK_Example.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Sources\glad.c">

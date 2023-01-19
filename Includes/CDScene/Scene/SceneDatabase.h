@@ -1,9 +1,12 @@
 #pragma once
 
+#include "Base/Endian.h"
 #include "Base/Export.h"
+#include "Base/Template.h"
 #include "Math/AABB.hpp"
 #include "Scene/Material.h"
 #include "Scene/Mesh.h"
+#include "Scene/Node.h"
 #include "Scene/Texture.h"
 #include "Scene/Light.h"
 
@@ -30,6 +33,13 @@ public:
 	void SetAABB(AABB aabb);
 	AABB& GetAABB();
 	const AABB& GetAABB() const;
+
+	// Node
+	void AddNode(Node node);
+	const std::vector<Node>& GetNodes() const;
+	void SetNodeCount(uint32_t nodeCount);
+	const Node& GetNode(uint32_t index) const;
+	uint32_t GetNodeCount() const;
 
 	// Mesh
 	void AddMesh(Mesh mesh);

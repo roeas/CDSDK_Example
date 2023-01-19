@@ -13,7 +13,7 @@ template<typename T>
 class TPlane
 {
 public:
-	using Vec = Vec3f;
+	using Vec = TVector<float, 3>;
 
 public:
 	TPlane() = default;
@@ -27,7 +27,7 @@ public:
 	TPlane& operator=(TPlane && rhs) = default;
 	~TPlane() = default;
 
-	bool IsValid() const { return !m_normal.IsNearlyZero(); }
+	bool IsValid() const { return !m_normal.IsZero() && !m_normal.IsNaN(); }
 	const Vec& GetNormal() const { return m_normal; }
 	T GetDistance() const { return m_distance; }
 	Vec GetOrigin() const { return m_normal * m_distance; }
@@ -39,6 +39,7 @@ private:
 
 using Plane = TPlane<float>;
 
-//static_cast(std::is_standard_layout_v<Plane> && std::is_trivial_v<Plane>, "Plane needs to implement copy/move constructors in hand.");
+static_assert(4 * sizeof(float) * sizeof(Plane));
+//static_cast(std::is_standard_layout_v<Plane> && std::is_trivial_v<Plane>);
 
 }

@@ -2,6 +2,8 @@
 
 #include <istream>
 
+#include "Math/Matrix.hpp"
+#include "Math/Transform.hpp"
 #include "Utilities/ByteSwap.h"
 
 namespace cd
@@ -34,19 +36,27 @@ public:
 	TInputArchive& operator>>(double& data) { return Import(data); }
 	TInputArchive& operator>>(char& data) { return Import(data); }
 	TInputArchive& operator>>(std::string& data) { return Import(data); }
+	TInputArchive& operator>>(Vec2f& data) { return ImportBuffer(data.Begin()); }
+	TInputArchive& operator>>(Vec3f& data) { return ImportBuffer(data.Begin()); }
+	TInputArchive& operator>>(Vec4f& data) { return ImportBuffer(data.Begin()); }
+	TInputArchive& operator>>(Quaternion& data) { return ImportBuffer(data.Begin()); }
+	TInputArchive& operator>>(Matrix3x3& data) { return ImportBuffer(data.Begin()); }
+	TInputArchive& operator>>(Matrix4x4& data) { return ImportBuffer(data.Begin()); }
+	TInputArchive& operator>>(Transform& data) { return ImportBuffer(data.Begin()); }
 
 	template<typename T>
-	void ImportBuffer(T data)
+	TInputArchive& ImportBuffer(T data)
 	{
 		static_assert(std::is_pointer_v<T> && "Data buffer should be pointer.");
-		size_t bufferBytes;
-		m_pIStream->read(reinterpret_cast<char*>(&bufferBytes), sizeof(size_t));
+		uint64_t bufferBytes;
+		m_pIStream->read(reinterpret_cast<char*>(&bufferBytes), sizeof(uint64_t));
 		if constexpr (SwapBytesOrder)
 		{
-			// bufferBytes = std::byteswap(bufferBytes);
-			bufferBytes = byte_swap<size_t>(bufferBytes);
+			bufferBytes = byte_swap<uint64_t>(bufferBytes);
 		}
 		m_pIStream->read(reinterpret_cast<char*>(data), bufferBytes);
+
+		return *this;
 	}
 
 public:
@@ -58,7 +68,6 @@ public:
 			m_pIStream->read(reinterpret_cast<char*>(&data), sizeof(data));
 			if constexpr (SwapBytesOrder)
 			{
-				// data = std::byteswap(data);
 				data = byte_swap<T>(data);
 			}
 		}
@@ -67,12 +76,10 @@ public:
 			m_pIStream->read(reinterpret_cast<char*>(&data), sizeof(data));
 			if constexpr (4 == sizeof(T))
 			{
-				// data = std::byteswap(static_cast<uint32_t>(data));
 				data = byte_swap<float>(data);
 			}
 			else if constexpr (8 == sizeof(T))
 			{
-				// data = std::byteswap(static_cast<uint64_t>(data));
 				data = byte_swap<double>(data);
 			}
 			else
@@ -82,12 +89,11 @@ public:
 		}
 		else if constexpr (std::is_same<T, std::string>())
 		{
-			size_t dataLength;
-			m_pIStream->read(reinterpret_cast<char*>(&dataLength), sizeof(size_t));
+			uint64_t dataLength;
+			m_pIStream->read(reinterpret_cast<char*>(&dataLength), sizeof(uint64_t));
 			if constexpr (SwapBytesOrder)
 			{
-				// dataLength = std::byteswap(dataLength);
-				dataLength = byte_swap<size_t>(dataLength);
+				dataLength = byte_swap<uint64_t>(dataLength);
 			}
 			data.resize(dataLength);
 			m_pIStream->read(reinterpret_cast<char*>(data.data()), dataLength);
