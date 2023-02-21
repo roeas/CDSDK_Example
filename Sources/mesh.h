@@ -22,9 +22,10 @@ struct GLTexture {
 
 class GLMesh {
 public:
+    GLMesh() = default;
     GLMesh(std::vector<GLVertex> &vertices, std::vector<unsigned int> &indices, std::vector<GLTexture> &textures);
 
-    void Draw(Shader &shader) const;
+    void Draw(const Shader &shader) const;
 
     std::vector<GLVertex> m_vertices;
     std::vector<unsigned int> m_indices;

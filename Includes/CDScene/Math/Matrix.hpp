@@ -60,7 +60,7 @@ public:
 	}
 
 	template<Handedness Hand, NDCDepth NDC>
-	static MatrixType Perspective(T fovy, T aspect, T near, T far)
+	static MatrixType Perspective(T fovy, T aspect, T nearPlane, T farPlane)
 	{
 		static_assert(4 == Rows && 4 == Cols);
 		constexpr T zero = static_cast<T>(0);
@@ -70,19 +70,19 @@ public:
 
 		T height = one / std::tan(Math::DegreeToRadian<T>(fovy) * half);
 		T width = height * one / aspect;
-		T delta = far - near;
+		T delta = farPlane - nearPlane;
 
 		T aa;
 		T bb;
 		if constexpr (NDCDepth::MinusOneToOne == NDC)
 		{
-			aa = (far + near) / delta;
-			bb = (two * far * near) / delta;
+			aa = (farPlane + nearPlane) / delta;
+			bb = (two * farPlane * nearPlane) / delta;
 		}
 		else
 		{
-			aa = far / delta;
-			bb = near * aa;
+			aa = farPlane / delta;
+			bb = nearPlane * aa;
 		}
 
 		constexpr T xx = zero;
@@ -103,21 +103,21 @@ public:
 		}
 	}
 
-	static MatrixType Perspective(T fovy, T aspect, T near, T far, bool isNDCDepthHomogeneous)
+	static MatrixType Perspective(T fovy, T aspect, T nearPlane, T farPlane, bool isNDCDepthHomogeneous)
 	{
 		static_assert(4 == Rows && 4 == Cols);
 		if (isNDCDepthHomogeneous)
 		{
-			return MatrixType::Perspective<cd::Handedness::Left, cd::NDCDepth::MinusOneToOne>(fovy, aspect, near, far);
+			return MatrixType::Perspective<cd::Handedness::Left, cd::NDCDepth::MinusOneToOne>(fovy, aspect, nearPlane, farPlane);
 		}
 		else
 		{
-			return MatrixType::Perspective<cd::Handedness::Left, cd::NDCDepth::ZeroToOne>(fovy, aspect, near, far);
+			return MatrixType::Perspective<cd::Handedness::Left, cd::NDCDepth::ZeroToOne>(fovy, aspect, nearPlane, farPlane);
 		}
 	}
 
 	template<Handedness Hand, NDCDepth NDC>
-	static MatrixType Orthographic(T left, T right, T top, T bottom, T near, T far, T offset)
+	static MatrixType Orthographic(T left, T right, T top, T bottom, T nearPlane, T farPlane, T offset)
 	{
 		static_assert(4 == Rows && 4 == Cols);
 		constexpr T zero = static_cast<T>(0);
@@ -126,7 +126,7 @@ public:
 
 		T deltaX = right - left;
 		T deltaY = top - bottom;
-		T deltaZ = far - near;
+		T deltaZ = farPlane - nearPlane;
 
 		T aa = two / deltaX;
 		T bb = two / deltaY;
@@ -138,12 +138,12 @@ public:
 		if constexpr (NDCDepth::MinusOneToOne == NDC)
 		{
 			cc = two / deltaZ;
-			ff = (near + far) / -deltaZ;
+			ff = (nearPlane + farPlane) / -deltaZ;
 		}
 		else
 		{
 			cc = one / deltaZ;
-			ff = near / -deltaZ;
+			ff = nearPlane / -deltaZ;
 		}
 
 		if constexpr (Handedness::Left == Hand)
@@ -162,23 +162,23 @@ public:
 		}
 	}
 
-	static MatrixType Orthographic(T left, T right, T top, T bottom, T near, T far, T offset, bool isNDCDepthHomogeneous)
+	static MatrixType Orthographic(T left, T right, T top, T bottom, T nearPlane, T farPlane, T offset, bool isNDCDepthHomogeneous)
 	{
 		static_assert(4 == Rows && 4 == Cols);
 		if (isNDCDepthHomogeneous)
 		{
-			return MatrixType::Orthographic<cd::Handedness::Left, cd::NDCDepth::MinusOneToOne>(left, right, top, bottom, near, far, offset);
+			return MatrixType::Orthographic<cd::Handedness::Left, cd::NDCDepth::MinusOneToOne>(left, right, top, bottom, nearPlane, farPlane, offset);
 		}
 		else
 		{
-			return MatrixType::Orthographic<cd::Handedness::Left, cd::NDCDepth::ZeroToOne>(left, right, top, bottom, near, far, offset);
+			return MatrixType::Orthographic<cd::Handedness::Left, cd::NDCDepth::ZeroToOne>(left, right, top, bottom, nearPlane, farPlane, offset);
 		}
 	}
 
 	/// <summary>
 	/// Convert 2D window position to a 3D position in the world space.
 	/// </summary>
-	/// <param name="window"> The 2D window's selected position. Z is between near and far in range [0, 1]. </param>
+	/// <param name="window"> The 2D window's selected position. Z is between nearPlane and farPlane in range [0, 1]. </param>
 	/// <param name="view"> The model view matrix. </param>
 	/// <param name="projection"> The projection matrix. </param>
 	/// <param name="viewport"> (x, y, w, h) The 2D window's left top 2D position, width, height. </param>
@@ -194,8 +194,10 @@ public:
 			                   Math::GetValueInNewRange((window.y() - viewport.y()) / viewport.w(), 0.0f, 1.0f, -1.0f, 1.0f),
 			                   Math::GetValueInNewRange(window.z() / one, 0.0f, 1.0f, -1.0f, 1.0f), one);
 		TVector<T, 4> multiply = inversePV * standard;
+		TVector<T, 3> result = multiply.xyz();
+		result /= multiply.w();
 		// assert(multiply.w() != 0);
-		return multiply.xyz() / multiply.w();
+		return result;
 	}
 
 public:
@@ -262,11 +264,9 @@ public:
 	CD_FORCEINLINE T& Data(int index) { return reinterpret_cast<T*>(data)[index]; }
 	CD_FORCEINLINE T Data(int row, int col) const { return data[col][row]; }
 	CD_FORCEINLINE T& Data(int row, int col) { return data[col][row]; }
+	void Clear() { std::memset(Begin(), 0, Size * sizeof(float)); }
 
-	// Clear
-	void Clear() { std::memset(Begin(), 0, Size); }
-
-	// Math
+	// Calculations
 	MatrixType Inverse() const
 	{
 		static_assert(4 == Rows && 4 == Cols);
@@ -396,7 +396,7 @@ public:
 
 			return TMatrix<T, 3, 3>(Data(0) / sx, Data(1) / sx, Data(2) / sx,
 									Data(4) / sy, Data(5) / sy, Data(6) / sy,
-									Data(7) / sz, Data(8) / sz, Data(9) / sz);
+									Data(8) / sz, Data(9) / sz, Data(10) / sz);
 		}
 	}
 
@@ -456,15 +456,23 @@ public:
 		return *this;
 	}
 
-	TVector<T, Cols> operator*(const TVector<T, Rows>& vector) const
+	TVector<T, Cols> operator*(const TVector<T, Rows>& v) const
 	{
+		// TODO : glm has a register based optimization on it.
 		if constexpr (3 == Rows && 3 == Cols)
 		{
-			return TVector<T, Cols>(vector.Dot(GetColumn(0)), vector.Dot(GetColumn(1)), vector.Dot(GetColumn(2)));
+			return TVector<T, Cols>(
+				Data(0) * v.x() + Data(3) * v.y() + Data(6) * v.z(),
+				Data(1) * v.x() + Data(4) * v.y() + Data(7) * v.z(),
+				Data(2) * v.x() + Data(5) * v.y() + Data(8) * v.z());
 		}
 		else if constexpr (4 == Rows && 4 == Cols)
 		{
-			return TVector<T, Cols>(vector.Dot(GetColumn(0)), vector.Dot(GetColumn(1)), vector.Dot(GetColumn(2)), vector.Dot(GetColumn(3)));
+			return TVector<T, Cols>(
+				Data(0) * v.x() + Data(4) * v.y() + Data(8)  * v.z() + Data(12) * v.w(),
+				Data(1) * v.x() + Data(5) * v.y() + Data(9)  * v.z() + Data(13) * v.w(),
+				Data(2) * v.x() + Data(6) * v.y() + Data(10) * v.z() + Data(14) * v.w(),
+				Data(3) * v.x() + Data(7) * v.y() + Data(11) * v.z() + Data(15) * v.w());
 		}
 	}
 
@@ -472,34 +480,34 @@ public:
 	{
 		if constexpr (3 == Rows && 3 == Cols)
 		{
-			return MatrixType(Data(0) * rhs.Data(0) + Data(1) * rhs.Data(3) + Data(2) * rhs.Data(6),
-				Data(0) * rhs.Data(1) + Data(1) * rhs.Data(4) + Data(2) * rhs.Data(7),
-				Data(0) * rhs.Data(2) + Data(1) * rhs.Data(5) + Data(2) * rhs.Data(8),
-				Data(3) * rhs.Data(0) + Data(4) * rhs.Data(3) + Data(5) * rhs.Data(6),
-				Data(3) * rhs.Data(1) + Data(4) * rhs.Data(4) + Data(5) * rhs.Data(7),
-				Data(3) * rhs.Data(2) + Data(4) * rhs.Data(5) + Data(5) * rhs.Data(8),
-				Data(6) * rhs.Data(0) + Data(7) * rhs.Data(3) + Data(8) * rhs.Data(6),
-				Data(6) * rhs.Data(1) + Data(7) * rhs.Data(4) + Data(8) * rhs.Data(7),
-				Data(6) * rhs.Data(2) + Data(7) * rhs.Data(5) + Data(8) * rhs.Data(8));
+			return MatrixType(Data(0) * rhs.Data(0) + Data(3) * rhs.Data(1) + Data(6) * rhs.Data(2),
+							  Data(1) * rhs.Data(0) + Data(4) * rhs.Data(1) + Data(7) * rhs.Data(2),
+							  Data(2) * rhs.Data(0) + Data(5) * rhs.Data(1) + Data(8) * rhs.Data(2),
+							  Data(0) * rhs.Data(3) + Data(3) * rhs.Data(4) + Data(6) * rhs.Data(5),
+							  Data(1) * rhs.Data(3) + Data(4) * rhs.Data(4) + Data(7) * rhs.Data(5),
+							  Data(2) * rhs.Data(3) + Data(5) * rhs.Data(4) + Data(8) * rhs.Data(5),
+							  Data(0) * rhs.Data(6) + Data(3) * rhs.Data(7) + Data(6) * rhs.Data(8),
+							  Data(1) * rhs.Data(6) + Data(4) * rhs.Data(7) + Data(7) * rhs.Data(8),
+							  Data(2) * rhs.Data(6) + Data(5) * rhs.Data(7) + Data(8) * rhs.Data(8));
 		}
 		else if constexpr (4 == Rows && 4 == Cols)
 		{
-			return MatrixType(Data(0) * rhs.Data(0) + Data(1) * rhs.Data(4) + Data(2) * rhs.Data(8) + Data(3) * rhs.Data(12),
-				Data(0) * rhs.Data(1) + Data(1) * rhs.Data(5) + Data(2) * rhs.Data(9) + Data(3) * rhs.Data(13),
-				Data(0) * rhs.Data(2) + Data(1) * rhs.Data(6) + Data(2) * rhs.Data(10) + Data(3) * rhs.Data(14),
-				Data(0) * rhs.Data(3) + Data(1) * rhs.Data(7) + Data(2) * rhs.Data(11) + Data(3) * rhs.Data(15),
-				Data(4) * rhs.Data(0) + Data(5) * rhs.Data(4) + Data(6) * rhs.Data(8) + Data(7) * rhs.Data(12),
-				Data(4) * rhs.Data(1) + Data(5) * rhs.Data(5) + Data(6) * rhs.Data(9) + Data(7) * rhs.Data(13),
-				Data(4) * rhs.Data(2) + Data(5) * rhs.Data(6) + Data(6) * rhs.Data(10) + Data(7) * rhs.Data(14),
-				Data(4) * rhs.Data(3) + Data(5) * rhs.Data(7) + Data(6) * rhs.Data(11) + Data(7) * rhs.Data(15),
-				Data(8) * rhs.Data(0) + Data(9) * rhs.Data(4) + Data(10) * rhs.Data(8) + Data(11) * rhs.Data(12),
-				Data(8) * rhs.Data(1) + Data(9) * rhs.Data(5) + Data(10) * rhs.Data(9) + Data(11) * rhs.Data(13),
-				Data(8) * rhs.Data(2) + Data(9) * rhs.Data(6) + Data(10) * rhs.Data(10) + Data(11) * rhs.Data(14),
-				Data(8) * rhs.Data(3) + Data(9) * rhs.Data(7) + Data(10) * rhs.Data(11) + Data(11) * rhs.Data(15),
-				Data(12) * rhs.Data(0) + Data(13) * rhs.Data(4) + Data(14) * rhs.Data(8) + Data(15) * rhs.Data(12),
-				Data(12) * rhs.Data(1) + Data(13) * rhs.Data(5) + Data(14) * rhs.Data(9) + Data(15) * rhs.Data(13),
-				Data(12) * rhs.Data(2) + Data(13) * rhs.Data(6) + Data(14) * rhs.Data(10) + Data(15) * rhs.Data(14),
-				Data(12) * rhs.Data(3) + Data(13) * rhs.Data(7) + Data(14) * rhs.Data(11) + Data(15) * rhs.Data(15));
+			return MatrixType(Data(0) * rhs.Data(0)  + Data(4) * rhs.Data(1)  + Data(8)  * rhs.Data(2)  + Data(12) * rhs.Data(3),
+							  Data(1) * rhs.Data(0)  + Data(5) * rhs.Data(1)  + Data(9)  * rhs.Data(2)  + Data(13) * rhs.Data(3),
+							  Data(2) * rhs.Data(0)  + Data(6) * rhs.Data(1)  + Data(10) * rhs.Data(2)  + Data(14) * rhs.Data(3),
+							  Data(3) * rhs.Data(0)  + Data(7) * rhs.Data(1)  + Data(11) * rhs.Data(2)  + Data(15) * rhs.Data(3),
+							  Data(0) * rhs.Data(4)  + Data(4) * rhs.Data(5)  + Data(8)  * rhs.Data(6)  + Data(12) * rhs.Data(7),
+							  Data(1) * rhs.Data(4)  + Data(5) * rhs.Data(5)  + Data(9)  * rhs.Data(6)  + Data(13) * rhs.Data(7),
+							  Data(2) * rhs.Data(4)  + Data(6) * rhs.Data(5)  + Data(10) * rhs.Data(6)  + Data(14) * rhs.Data(7),
+							  Data(3) * rhs.Data(4)  + Data(7) * rhs.Data(5)  + Data(11) * rhs.Data(6)  + Data(15) * rhs.Data(7),
+							  Data(0) * rhs.Data(8)  + Data(4) * rhs.Data(9)  + Data(8)  * rhs.Data(10) + Data(12) * rhs.Data(11),
+							  Data(1) * rhs.Data(8)  + Data(5) * rhs.Data(9)  + Data(9)  * rhs.Data(10) + Data(13) * rhs.Data(11),
+							  Data(2) * rhs.Data(8)  + Data(6) * rhs.Data(9)  + Data(10) * rhs.Data(10) + Data(14) * rhs.Data(11),
+							  Data(3) * rhs.Data(8)  + Data(7) * rhs.Data(9)  + Data(11) * rhs.Data(10) + Data(15) * rhs.Data(11),
+							  Data(0) * rhs.Data(12) + Data(4) * rhs.Data(13) + Data(8)  * rhs.Data(14) + Data(12) * rhs.Data(15),
+							  Data(1) * rhs.Data(12) + Data(5) * rhs.Data(13) + Data(9)  * rhs.Data(14) + Data(13) * rhs.Data(15),
+							  Data(2) * rhs.Data(12) + Data(6) * rhs.Data(13) + Data(10) * rhs.Data(14) + Data(14) * rhs.Data(15),
+							  Data(3) * rhs.Data(12) + Data(7) * rhs.Data(13) + Data(11) * rhs.Data(14) + Data(15) * rhs.Data(15));
 		}
 	}
 

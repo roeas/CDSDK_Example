@@ -4,7 +4,6 @@
 #include <iostream>
 #include <set>
 #include <sstream>
-#include <stb_image.h>
 #include <string>
 
 #include "mesh.h"

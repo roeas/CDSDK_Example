@@ -57,6 +57,8 @@ public:
 	~TVector() = default;
 
 	// Set
+	void Set(T value) { std::fill(Begin(), End(), value); }
+
 	template <typename... Args>
 	void Set(Args... args)
 	{
@@ -64,15 +66,15 @@ public:
 		data = { static_cast<T>(args)... };
 	}
 
-	void Clear() { std::memset(Begin(), 0, Size); }
+	void Clear() { std::memset(data, 0, Size * sizeof(float)); }
 
 	// Get
 	CD_FORCEINLINE Iterator Begin() { return &data[0]; }
 	CD_FORCEINLINE Iterator End() { return &data[0] + Size; }
 	CD_FORCEINLINE ConstIterator Begin() const { return &data[0]; }
 	CD_FORCEINLINE ConstIterator End() const { return &data[0] + Size; }
-	CD_FORCEINLINE constexpr T& operator[](int index) { return data[index]; }
-	CD_FORCEINLINE constexpr const T& operator[](int index) const { return data[index]; }
+	CD_FORCEINLINE constexpr T& operator[](std::size_t index) { return data[index]; }
+	CD_FORCEINLINE constexpr const T& operator[](std::size_t index) const { return data[index]; }
 	CD_FORCEINLINE constexpr T& x() { static_assert(1 <= N); return data[0]; }
 	CD_FORCEINLINE constexpr const T& x() const { static_assert(1 <= N); return data[0]; }
 	CD_FORCEINLINE constexpr T& y() { static_assert(2 <= N); return data[1]; }

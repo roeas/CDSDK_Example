@@ -12,17 +12,27 @@ namespace cd
 /// <summary>
 /// Mathematical Box.
 /// </summary>
-/// <typeparam name="T">Coordinate value type : float, double, ...</typeparam>
+/// <typeparam name="T">The value type of Point.</typeparam>
 /// <typeparam name="N">The number of dimensions.</typeparam>
-template<typename T>
+template<typename T, std::size_t N>
 class TBox final
 {
 public:
+	using PointType = TVector<T, N>;
+	static constexpr std::size_t Dimensions = N;
+
+	static TBox<T, N> Empty()
+	{
+		constexpr T zero = static_cast<T>(0);
+		return TBox<T, N>(PointType(zero), PointType(zero));
+	}
+
+public:
 	explicit constexpr TBox() = default;
 
-	explicit constexpr TBox(T min, T max) : TBox(TVector<T, 3>(min), TVector<T, 3>(max)) {}
+	explicit constexpr TBox(T min, T max) : TBox(PointType(min), PointType(max)) {}
 
-	explicit constexpr TBox(TVector<T, 3> min, TVector<T, 3> max)
+	explicit constexpr TBox(PointType min, PointType max)
 		: m_min(MoveTemp(min))
 		, m_max(MoveTemp(max))
 	{
@@ -34,35 +44,46 @@ public:
 	TBox& operator=(TBox&&) = default;
 	~TBox() = default;
 
-	TVector<T, 3>& Min() { return m_min; }
-	TVector<T, 3>& Max() { return m_max; }
-	const TVector<T, 3>& Min() const { return m_min; }
-	const TVector<T, 3>& Max() const { return m_max; }
-	TVector<T, 3> Center() const { return m_min + (m_max - m_min) * static_cast<T>(0.5); }
-	TVector<T, 3> Size() const { return m_max - m_min; }
+	PointType& Min() { return m_min; }
+	PointType& Max() { return m_max; }
+	const PointType& Min() const { return m_min; }
+	const PointType& Max() const { return m_max; }
+	PointType Center() const { return m_min + (m_max - m_min) * static_cast<T>(0.5); }
+	PointType Size() const { return m_max - m_min; }
+	void Clear() { m_min.Clear(); m_max.Clear(); }
 
-	bool Empty() const { return m_min == m_max; }
-	bool IsPointInside(const Point& point) const { return !(point.x() < m_min.x() || point.x() > m_max.x() || point.y() < m_min.y() || point.y() > m_max.y() || point.z() < m_min.z() || point.z() > m_max.z()); }
+	bool IsEmpty() const { return m_min == m_max; }
+	bool IsPointInside(const PointType& point) const
+	{
+		for(size_t dimensionIndex = 0; dimensionIndex < Dimensions; ++dimensionIndex)
+		{
+			if(point[dimensionIndex] < m_min[dimensionIndex] ||
+				point[dimensionIndex] > m_max[dimensionIndex])
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
 
 	void Merge(const TBox& other)
 	{
-		for (int index = 0; index < m_min.Size; ++index)
+		for (size_t dimensionIndex = 0; dimensionIndex < Dimensions; ++dimensionIndex)
 		{
-			m_min.x() = std::min(m_min.x(), other.Min().x());
-			m_min.y() = std::min(m_min.y(), other.Min().y());
-			m_min.z() = std::min(m_min.z(), other.Min().z());
-
-			m_max.x() = std::max(m_max.x(), other.Max().x());
-			m_max.y() = std::max(m_max.y(), other.Max().y());
-			m_max.z() = std::max(m_max.z(), other.Max().z());
+			m_min[dimensionIndex] = std::min<T>(m_min[dimensionIndex], other.Min()[dimensionIndex]);
+			m_max[dimensionIndex] = std::max<T>(m_max[dimensionIndex], other.Max()[dimensionIndex]);
 		}
 	}
 
 	TBox Transform(const cd::Matrix4x4& transform)
 	{
+		static_assert(3 == N);
+
 		TBox result(*this);
 
-		TVector<T, 3> newCenter = transform * cd::TVector<T, 4>(result.Center(), static_cast<T>(1));
+		TVector<T, 4> transformedCenter = transform * cd::TVector<T, 4>(result.Center().x(), result.Center().y(), result.Center().z(), static_cast<T>(1));
+		TVector<T, 3> newCenter(transformedCenter.x(), transformedCenter.y(), transformedCenter.z());
 		TVector<T, 3> oldEdge = result.Size();
 		oldEdge *= static_cast<T>(0.5);
 
@@ -77,23 +98,42 @@ public:
 		return result;
 	}
 
-	// TODO : have a look at "Fast Ray-Box Intersection" Graphics Gems, 1990.
-	bool Intersects(const TRay<T>& ray) const
+	bool Intersects(const TRay<T>& ray, T& t) const
 	{
-		const TVector<T, 3>& origin = ray.Origin();
-		if (IsPointInside(origin))
+		// TODO : For 2D Rect.
+		static_assert(3 == N);
+
+		// TODO : have a look at "Fast Ray-Box Intersection" Graphics Gems, 1990.
+		// We can cache it inside Ray class to speed up calculations.
+		T dirfracx = 1.0f / ray.Direction().x();
+		T dirfracy = 1.0f / ray.Direction().y();
+		T dirfracz = 1.0f / ray.Direction().z();
+
+		T t1 = (m_min.x() - ray.Origin().x()) * dirfracx;
+		T t2 = (m_max.x() - ray.Origin().x()) * dirfracx;
+		T t3 = (m_min.y() - ray.Origin().y()) * dirfracy;
+		T t4 = (m_max.y() - ray.Origin().y()) * dirfracy;
+		T t5 = (m_min.z() - ray.Origin().z()) * dirfracz;
+		T t6 = (m_max.z() - ray.Origin().z()) * dirfracz;
+		T tmin = std::max(std::max(std::min(t1, t2), std::min(t3, t4)), std::min(t5, t6));
+		T tmax = std::min(std::min(std::max(t1, t2), std::max(t3, t4)), std::max(t5, t6));
+
+		// if tmax < 0, ray (line) is intersecting AABB, but the whole AABB is behind us
+		if (tmax < 0)
 		{
-			return true;
+			t = tmax;
+			return false;
 		}
-		
-		const TVector<T, 3>& direction = ray.Direction();
-		TVector<T, 3> tMin = (m_min - origin) / direction;
-		TVector<T, 3> tMax = (m_max - origin) / direction;
-		TVector<T, 3> t1(std::min(tMin.x(), tMax.x()), std::min(tMin.y(), tMax.y()), std::min(tMin.z(), tMax.z()));
-		TVector<T, 3> t2(std::max(tMin.x(), tMax.x()), std::max(tMin.y(), tMax.y()), std::max(tMin.z(), tMax.z()));
-		T tNear = std::max(std::max(t1.x(), t1.y()), t1.z());
-		T tFar = std::min(std::min(t2.x(), t2.y()), t2.z());
-		return tNear <= tFar;
+
+		// if tmin > tmax, ray doesn't intersect AABB
+		if (tmin > tmax)
+		{
+			t = tmax;
+			return false;
+		}
+
+		t = tmin;
+		return true;
 	}
 
 	template<bool SwapBytesOrder>
@@ -115,13 +155,18 @@ public:
 	}
 
 private:
-	TVector<T, 3> m_min;
-	TVector<T, 3> m_max;
+	PointType m_min;
+	PointType m_max;
 };
 
-using Box = TBox<float>;
+using Rect = TBox<float, 2>;
+static_assert(4 * sizeof(float) == sizeof(Rect));
+static_assert(std::is_standard_layout_v<Rect>&& std::is_trivial_v<Rect>);
 
+using Box = TBox<float, 3>;
 static_assert(6 * sizeof(float) == sizeof(Box));
 static_assert(std::is_standard_layout_v<Box> && std::is_trivial_v<Box>);
+
+using AABB = Box;
 
 }

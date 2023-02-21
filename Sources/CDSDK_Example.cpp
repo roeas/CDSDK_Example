@@ -1,6 +1,4 @@
-﻿#define STB_IMAGE_IMPLEMENTATION
-
-#include <iostream>
+﻿#include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -9,7 +7,7 @@
 
 #include "shader.h"
 #include "camera.h"
-#include "model.h"
+#include "scene.h"
 
 void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
 void ProcessInput(GLFWwindow* window, float deltaTime);
@@ -54,7 +52,9 @@ int main()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     Shader pbrShader("Shaders/vs_PBR.glsl", "Shaders/fs_PBR.glsl");
-    GLModel cdscene("Models/scene.cdbin");
+    GLScene cdscene;
+    cdscene.LoadModel("Models/scene.cdbin");
+    cdscene.SetShader(pbrShader);
 
     float deltaTime = 0.0f;
     float lastFrameTime = 0.0f;
@@ -71,9 +71,9 @@ int main()
         glm::mat4 projection = glm::perspective(glm::radians(camera.m_zoom), 800.0f / 600.0f, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 model(1.0f);
-        model = glm::scale(model, glm::vec3(30.0f, 30.0f, 30.0f));
+        model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
         model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0, 1.0, 0.0));
-        model = glm::translate(model, glm::vec3(0.0f, -0.03f, 0.0f));
+        model = glm::translate(model, glm::vec3(0.0f, -3.0f, 0.0f));
 
         pbrShader.Use();
         pbrShader.SetMat4("projection", projection);
@@ -99,7 +99,7 @@ int main()
         pbrShader.SetFloat("u_lights[2].range", 1024.0f);
 
         pbrShader.SetInt("u_lights[3].type", 1);
-        pbrShader.SetFloat("u_lights[3].intensity", 0.8f);
+        pbrShader.SetFloat("u_lights[3].intensity", 4.0f);
         pbrShader.SetVec3("u_lights[3].color", glm::vec3(1.0f, 1.0f, 1.0f));
         pbrShader.SetFloat("u_lights[3].range", 1024.0f);
         pbrShader.SetVec3("u_lights[3].direction", glm::vec3(0.0f, 0.0f, -1.0f));

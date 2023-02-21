@@ -1,13 +1,21 @@
 #pragma once
 
+#include "Math/Vector.hpp"
+#include "Scene/ObjectID.h"
+
 #include <cstdint>
 #include <type_traits>
 
 namespace cd
 {
 
-static constexpr uint32_t MaxUVSetNumber = 4U;
-static constexpr uint32_t MaxColorSetNumber = 4U;
+static constexpr uint32_t MaxUVSetCount = 4U;
+static constexpr uint32_t MaxColorSetCount = 4U;
+static constexpr uint32_t MaxBoneInfluenceCount = 8U;
+using VertexWeight = float;
+
+// We expect to use triangulated mesh data in game engine.
+using Polygon = TVector<VertexID, 3>;
 
 enum class VertexAttributeType : uint8_t
 {
@@ -17,13 +25,15 @@ enum class VertexAttributeType : uint8_t
 	Bitangent,
 	UV,
 	Color,
+	BoneWeight,
+	BoneIndex,
 };
 
 enum class AttributeValueType : uint8_t
 {
 	Uint8,
 	Float,
-	Uint16,
+	Int16,
 };
 
 template<typename T>
@@ -35,7 +45,7 @@ static constexpr AttributeValueType GetAttributeValueType()
 	}
 	else if constexpr (std::is_same<T, uint16_t>())
 	{
-		return AttributeValueType::Uint16;
+		return AttributeValueType::Int16;
 	}
 	else if constexpr (std::is_same<T, float>())
 	{

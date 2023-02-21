@@ -8,7 +8,7 @@ GLMesh::GLMesh(std::vector<GLVertex> &vertices, std::vector<unsigned int> &indic
     SetupMesh();
 }
 
-void GLMesh::Draw(Shader &shader) const {
+void GLMesh::Draw(const Shader &shader) const {
     // bind texture
     unsigned int diffuseNr = 1;
     unsigned int specularNr = 1;
@@ -25,7 +25,7 @@ void GLMesh::Draw(Shader &shader) const {
         else if (type == cd::MaterialTextureType::Normal) {
             shader.SetInt("s_texNormal", i);
         }
-        else if (type == cd::MaterialTextureType::Metalness) {
+        else if (type == cd::MaterialTextureType::Metallic) {
             shader.SetInt("s_texORM", i);
         }
 

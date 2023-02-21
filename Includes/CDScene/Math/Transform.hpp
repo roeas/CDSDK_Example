@@ -15,6 +15,8 @@ public:
 	using Iterator = T*;
 	using ConstIterator = const T*;
 
+	static TTransform Identity() { return TTransform(TVector<T, 3>::Zero(), TQuaternion<T>::Identity(), TVector<T, 3>::One()); }
+
 public:
 	TTransform() = default;
 
@@ -33,9 +35,9 @@ public:
 
 	void Clear()
 	{
-		m_translation.Clear();
+		m_translation.Set(static_cast<T>(0));
 		m_rotation.Clear();
-		m_scale.Clear();
+		m_scale.Set(static_cast<T>(1));
 	}
 
 	// Get
@@ -58,37 +60,17 @@ public:
 
 	TMatrix<T, 4, 4> GetMatrix() const
 	{
-		constexpr T zero = static_cast<T>(0);
-		constexpr T one = static_cast<T>(1);
-		constexpr T two = static_cast<T>(2);
+		TMatrix<T, 4, 4> result = m_rotation.ToMatrix4x4();
 
-		T w = m_rotation.w();
-		T ww = w * w;
-		T angle = two * std::acos(w);
-		T ax = m_rotation.x() / std::sqrt(one - ww);
-		T ay = m_rotation.y() / std::sqrt(one - ww);
-		T az = m_rotation.z() / std::sqrt(one - ww);
+		result.GetColumn(3)[0] = m_translation.x();
+		result.GetColumn(3)[1] = m_translation.y();
+		result.GetColumn(3)[2] = m_translation.z();
 
-		T sinax = std::sin(ax);
-		T cosax = std::cos(ax);
-		T sinay = std::sin(ay);
-		T cosay = std::cos(ay);
-		T sinaz = std::sin(az);
-		T cosaz = std::cos(az);
-		T sinaxz = sinax * sinaz;
-		T cosayz = cosay * cosaz;
-
-		T tx = m_translation.x();
-		T ty = m_translation.y();
-		T tz = m_translation.z();
-		T sx = m_scale.x();
-		T sy = m_scale.y();
-		T sz = m_scale.z();
-
-		return TMatrix<T, 4, 4>(sx * (cosayz - sinaxz * sy), sx * -cosax * sz, sx * (cosaz * sy + cosay * sinaxz), zero,
-			                    sy * (cosaz * sx * sy + cosay * sz), sy * cosax * cosaz, sy * (sy * sz - cosayz * sx), zero,
-			                    sz * -cosax * sy, sz * sx, sz * cosax * cosay, zero,
-			                    tx, ty, tz, one);
+		result.GetColumn(0)[0] *= m_scale.x();
+		result.GetColumn(1)[1] *= m_scale.y();
+		result.GetColumn(2)[2] *= m_scale.z();
+		
+		return result;
 	}
 
 private:

@@ -1,73 +1,147 @@
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include "GLConsumer.h"
 
 constexpr cd::MaterialTextureType PossibleTextureTypes[] = {
 	cd::MaterialTextureType::BaseColor,
 	cd::MaterialTextureType::Normal,
-	cd::MaterialTextureType::Metalness,
+	cd::MaterialTextureType::Metallic,
 };
 
-void GLConsumer::Execute(const cd::SceneDatabase* pSceneDatabase) {
+void GLConsumer::Execute(const cd::SceneDatabase *pSceneDatabase) {
 	printf("Loading scene : %s\n", pSceneDatabase->GetName());
+	printf("Node count : %d\n", pSceneDatabase->GetNodeCount());
 	printf("Mesh count : %d\n", pSceneDatabase->GetMeshCount());
 	printf("Material count : %d\n", pSceneDatabase->GetMaterialCount());
 	printf("Texture count : %d\n", pSceneDatabase->GetTextureCount());
 	printf("Light count : %d\n", pSceneDatabase->GetLightCount());
-	const cd::AABB& sceneAABB = pSceneDatabase->GetAABB();
+	const cd::AABB &sceneAABB = pSceneDatabase->GetAABB();
 	printf("Scene AABB min : (%f, %f, %f), max : (%f, %f, %f)\n",
 		sceneAABB.Min().x(), sceneAABB.Min().y(), sceneAABB.Min().z(),
 		sceneAABB.Max().x(), sceneAABB.Max().y(), sceneAABB.Max().z());
 
-	const std::vector<cd::Mesh>& meshes = pSceneDatabase->GetMeshes();
-	for (uint32_t meshIndex = 0; meshIndex < pSceneDatabase->GetMeshCount(); ++meshIndex) {
-		const cd::Mesh& mesh = pSceneDatabase->GetMesh(meshIndex);
-		printf("\n\tMesh ID : %d\n", mesh.GetID().Data());
+	m_meshes.resize(pSceneDatabase->GetMeshCount());
 
-		printf("\t\tMesh Name : %s\n", mesh.GetName());
-		printf("\t\tVertex Count : %d\n", mesh.GetVertexCount());
-		printf("\t\tPolygon Count : %d\n", mesh.GetPolygonCount());
-
-		std::vector<GLVertex> vertices;
-		std::vector<unsigned int> indices;
-		std::vector<GLTexture> textures;
-
-		// 1. vertices
-		vertices.reserve(mesh.GetVertexCount());
-		for (uint32_t vertexIndex = 0; vertexIndex < mesh.GetVertexCount(); ++vertexIndex) {
-			const cd::Point& position = mesh.GetVertexPosition(vertexIndex);
-			const cd::Direction& normal = mesh.GetVertexNormal(vertexIndex);
-			const cd::Direction& tangent = mesh.GetVertexTangent(vertexIndex);
-			const cd::UV& uv = mesh.GetVertexUV(0, vertexIndex);
-
-			GLVertex vertex;
-			memcpy(&vertex.m_position, &position, 3 * sizeof(float));
-			memcpy(&vertex.m_normal, &normal, 3 * sizeof(float));
-			memcpy(&vertex.m_tangent, &tangent, 3 * sizeof(float));
-			memcpy(&vertex.m_texCoords, &uv, 2 * sizeof(float));
-
-			vertices.emplace_back(std::move(vertex));
+	const uint32_t nodeCount = pSceneDatabase->GetNodeCount();
+	for(uint32_t nodeIndex = 0; nodeIndex < nodeCount; ++nodeIndex) {
+		const cd::Node &node = pSceneDatabase->GetNode(nodeIndex);
+		printf("\n\tNode ID : %d\n", node.GetID().Data());
+		printf("\tNode Name : %s\n", node.GetName().c_str());
+		printf("\tParient ID : %d\n", node.GetParentID().Data());
+		if(node.GetChildCount()) {
+			printf("\tChild ID :");
+			for(const auto &childID : node.GetChildIDs()) {
+				printf(" %d", childID.Data());
+			}
 		}
-
-		// 2. indices
-		indices.reserve(mesh.GetPolygonCount() * 3);
-		for (uint32_t i = 0; i < mesh.GetPolygonCount(); ++i) {
-			indices.push_back(mesh.GetPolygon(i)[0].Data());
-			indices.push_back(mesh.GetPolygon(i)[1].Data());
-			indices.push_back(mesh.GetPolygon(i)[2].Data());
+		if(node.GetMeshCount()) {
+			printf("\tMesh Count : %d\n", node.GetMeshCount());
 		}
+		printf("\n");
+		
+		const std::vector<cd::MeshID> &meshIDs = node.GetMeshIDs();
+		for(const auto &meshID : meshIDs) {
+			const cd::Mesh &mesh = pSceneDatabase->GetMesh(meshID.Data());
+			assert(meshID.Data() == mesh.GetID().Data());
 
-		// 3. textures
-		const cd::MaterialID& materialID = mesh.GetMaterialID();
-		printf("\t\tMaterial ID : %d\n", materialID.Data());
-		const cd::Material& material = pSceneDatabase->GetMaterial(materialID.Data());
-		assert(materialID.Data() == material.GetID().Data());
+			printf("\t\tMesh ID : %d\n", mesh.GetID().Data());
+			printf("\t\tMesh Name : %s\n", mesh.GetName());
+			printf("\t\tVertex Count : %d\n", mesh.GetVertexCount());
+			printf("\t\tPolygon Count : %d\n", mesh.GetPolygonCount());
 
-		printf("\t\t\tMaterial name : %s\n", material.GetName());
-		for (const cd::MaterialTextureType& textureType : PossibleTextureTypes) {
-			std::vector<GLTexture> typeTextures = LoadMaterialTextures(pSceneDatabase, material, textureType);
-			textures.insert(textures.end(), typeTextures.begin(), typeTextures.end());
+			std::vector<GLVertex> vertices;
+			std::vector<unsigned int> indices;
+			std::vector<GLTexture> textures;
+
+			// 1. vertices
+			vertices.reserve(mesh.GetVertexCount());
+			for(uint32_t vertexIndex = 0; vertexIndex < mesh.GetVertexCount(); ++vertexIndex) {
+				const cd::Point &position = mesh.GetVertexPosition(vertexIndex);
+				const cd::Direction &normal = mesh.GetVertexNormal(vertexIndex);
+				const cd::Direction &tangent = mesh.GetVertexTangent(vertexIndex);
+				const cd::UV &uv = mesh.GetVertexUV(0, vertexIndex);
+
+				GLVertex vertex;
+				memcpy(&vertex.m_position, &position, 3 * sizeof(float));
+				memcpy(&vertex.m_normal, &normal, 3 * sizeof(float));
+				memcpy(&vertex.m_tangent, &tangent, 3 * sizeof(float));
+				memcpy(&vertex.m_texCoords, &uv, 2 * sizeof(float));
+
+				vertices.emplace_back(std::move(vertex));
+			}
+
+			// 2. indices
+			indices.reserve(mesh.GetPolygonCount() * 3);
+			for(uint32_t i = 0; i < mesh.GetPolygonCount(); ++i) {
+				indices.push_back(mesh.GetPolygon(i)[0].Data());
+				indices.push_back(mesh.GetPolygon(i)[1].Data());
+				indices.push_back(mesh.GetPolygon(i)[2].Data());
+			}
+
+			// 3. material
+			const cd::MaterialID &materialID = mesh.GetMaterialID();
+			printf("\t\t\tMaterial ID : %d\n", materialID.Data());
+			const cd::Material &material = pSceneDatabase->GetMaterial(materialID.Data());
+			assert(materialID.Data() == material.GetID().Data());
+			printf("\t\t\tMaterial name : %s\n", material.GetName());
+
+			const cd::PropertyMap &propertyGroups = material.GetPropertyGroups();
+
+			// printf("All keys :\n");
+			// for(const auto &key : propertyGroups.GetKeySetProperty()) {
+			// 	printf("%s\n", key.c_str());
+			// }
+
+			{
+				std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::BaseColor, cd::MaterialProperty::Factor);
+				const auto value = propertyGroups.Get<float>(key);
+				if(value.has_value()) { printf("\t\t\t%s : %f\n", key.c_str(), value.value()); }
+			}
+			{
+				std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::BaseColor, cd::MaterialProperty::UseTexture);
+				const auto value = propertyGroups.Get<bool>(key);
+				if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
+			}
+			{
+				std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::BaseColor, cd::MaterialProperty::Texture);
+				const auto value = propertyGroups.Get<uint32_t>(key);
+				if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
+			}
+			// For example :
+			// key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::Roughness, cd::MaterialProperty::Texture);
+			// key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::Metallic, cd::MaterialProperty::Texture);
+			// ...
+			{
+				std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::General, cd::MaterialProperty::EnableDirectionalLights);
+				const auto value = propertyGroups.Get<bool>(key);
+				if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
+			}
+			{
+				std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::General, cd::MaterialProperty::EnablePunctualLights);
+				const auto value = propertyGroups.Get<bool>(key);
+				if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
+			}
+			{
+				std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::General, cd::MaterialProperty::EnableAreaLights);
+				const auto value = propertyGroups.Get<bool>(key);
+				if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
+			}
+			{
+				std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::General, cd::MaterialProperty::EnableIBL);
+				const auto value = propertyGroups.Get<bool>(key);
+				if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
+			}
+
+			for(const cd::MaterialTextureType &textureType : PossibleTextureTypes) {
+				std::vector<GLTexture> typeTextures = LoadMaterialTextures(pSceneDatabase, material, textureType);
+				textures.insert(textures.end(), typeTextures.begin(), typeTextures.end());
+			}
+
+			// Use mesh id as GLMesh index.
+			assert(meshID.Data() < m_meshes.size());
+			m_meshes[meshID.Data()] = GLMesh(vertices, indices, textures);
 		}
-
-		m_meshes.emplace_back(GLMesh(vertices, indices, textures));
 	}
 }
 
@@ -78,7 +152,7 @@ std::vector<GLTexture> GLConsumer::LoadMaterialTextures(const cd::SceneDatabase*
 	if (textureID.has_value()) {
 		const std::string& texturePath = pSceneDatabase->GetTexture(textureID->Data()).GetPath();
 		std::string textureName = texturePath.substr(texturePath.rfind('/') + 1, texturePath.rfind('.') - texturePath.rfind('/') - 1);
-		printf("\t\t\tTexture Name: %s\n", textureName.c_str());
+		printf("\t\t\t\tTexture Name: %s\n", textureName.c_str());
 
 		const auto it = m_textureLoaded.find(textureName);
 		if (it != m_textureLoaded.end()) {
@@ -94,7 +168,7 @@ std::vector<GLTexture> GLConsumer::LoadMaterialTextures(const cd::SceneDatabase*
 		}
 	}
 	else {
-		printf("\t\t\tTexture Name: UnknownMaterial\n");
+		printf("\t\t\t\tTexture Name: UnknownMaterial\n");
 	}
 
 	return textures;
@@ -103,7 +177,7 @@ std::vector<GLTexture> GLConsumer::LoadMaterialTextures(const cd::SceneDatabase*
 unsigned int GLConsumer::TextureFromFile(const char* path, const std::string& directory) {
 	std::string filename(path);
 	filename = directory + '/' + filename + ".png";
-	printf("\t\t\t[Read File] Texture Path: %s\n", filename.c_str());
+	printf("\t\t\t\t[Read File] Texture Path: %s\n", filename.c_str());
 
 	unsigned int textureID;
 	glGenTextures(1, &textureID);
@@ -128,7 +202,7 @@ unsigned int GLConsumer::TextureFromFile(const char* path, const std::string& di
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
 	else {
-		printf("\n\t\t\tTexture failed to load at path: %s\n\n", filename.c_str());
+		printf("\n\t\t\t\tTexture failed to load at path: %s\n\n", filename.c_str());
 	}
 	stbi_image_free(data);
 
