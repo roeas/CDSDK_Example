@@ -21,15 +21,7 @@ public:
 
 	cd::SceneDatabase *GetSene() { return m_pScene; }
 
-	void LoadModel(const char *path) {
-		cdtools::CDProducer producer(path);
-		GLConsumer consumer("");
-
-		cdtools::Processor processor(&producer, &consumer, m_pScene);
-		processor.Run();
-
-		m_meshes = consumer.GetMeshes();
-	}
+	void LoadModel(const char *path);
 
 	void SetShader(const Shader &shader) { m_shader = shader; }
 
