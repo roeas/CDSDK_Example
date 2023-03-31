@@ -16,6 +16,27 @@ void ScrollCallback(GLFWwindow* window, double xIn, double yIn);
 
 Camera camera(glm::vec3(0.0f, -1.19f, 0.05f));
 
+void AddLight(cd::SceneDatabase *pScene) {
+    cd::Light point(cd::LightID(0), cd::LightType::Point);
+    point.SetPosition(cd::Point(0.0f, -4.0f, 0.0f));
+    point.SetIntensity(1024.0f);
+    point.SetColor(cd::Vec3f(0.8f, 0.4f, 0.4f));
+    point.SetRange(1024.0f);
+    pScene->AddLight(std::move(point));
+
+    cd::Light directional(cd::LightID(0), cd::LightType::Directional);
+    directional.SetDirection(cd::Direction(0.0f, 0.0f, -1.0f));
+    directional.SetIntensity(4.0f);
+    directional.SetColor(cd::Vec3f(1.0f, 1.0f, 1.0f));
+    pScene->AddLight(std::move(directional));
+}
+
+std::string GetUniformName(const uint32_t index, const char *member) {
+    std::stringstream ss;
+    ss << "u_lights[" << index << "]." << member;
+    return ss.str();
+}
+
 int main()
 {
     glfwInit();
@@ -56,12 +77,14 @@ int main()
     scene.LoadModel("Models/scene.cdbin");
     scene.SetShader(pbrShader);
 
+    AddLight(scene.GetSene());
+
     float deltaTime = 0.0f;
     float lastFrameTime = 0.0f;
     while (!glfwWindowShouldClose(window)) {
-        printf("\nCamera pos: x: %f", camera.m_position.x);
-        printf(" y: %f", camera.m_position.y);
-        printf(" z: %f", camera.m_position.z);
+        // printf("\nCamera pos: x: %f", camera.m_position.x);
+        // printf(" y: %f", camera.m_position.y);
+        // printf(" z: %f", camera.m_position.z);
 
         float crtTime = glfwGetTime();
         deltaTime = crtTime - lastFrameTime;
@@ -84,29 +107,27 @@ int main()
         pbrShader.SetMat4("view", view);
         pbrShader.SetMat4("model", model);
 
-        pbrShader.SetInt("u_lights[0].type", 0);
-        pbrShader.SetVec3("u_lights[0].position", glm::vec3(4.0f, 0.0f, 0.0f));
-        pbrShader.SetFloat("u_lights[0].intensity", 1024.0f);
-        pbrShader.SetVec3("u_lights[0].color", glm::vec3(0.8f, 0.4f, 0.4f));
-        pbrShader.SetFloat("u_lights[0].range", 1024.0f);
+        const cd::SceneDatabase *pScene = scene.GetSene();
+        if(pScene->GetLightCount()) {
+            uint32_t index = 0;
+            for(const auto &light : pScene->GetLights()) {
+                const int type = static_cast<int>(light.GetType());
+                const glm::vec3 position = { light.GetPosition().x(), light.GetPosition().y(), light.GetPosition().z() };
+                const float intensity = light.GetIntensity();
+                const glm::vec3 clolr = { light.GetColor().x(), light.GetColor().y(), light.GetColor().z() };
+                const float range = light.GetRange();
+                const glm::vec3 direction = { light.GetDirection().x(), light.GetDirection().y() , light.GetDirection().z() };
 
-        pbrShader.SetInt("u_lights[1].type", 0);
-        pbrShader.SetVec3("u_lights[1].position", glm::vec3(-4.0f, 0.0f, 0.0f));
-        pbrShader.SetFloat("u_lights[1].intensity", 1024.0f);
-        pbrShader.SetVec3("u_lights[1].color", glm::vec3(0.4f, 0.4f, 0.8f));
-        pbrShader.SetFloat("u_lights[1].range", 1024.0f);
+                pbrShader.SetInt(GetUniformName(index, "type"), type);
+                pbrShader.SetVec3(GetUniformName(index, "position"), position);
+                pbrShader.SetFloat(GetUniformName(index, "intensity"), intensity);
+                pbrShader.SetVec3(GetUniformName(index, "color"), clolr);
+                pbrShader.SetFloat(GetUniformName(index, "range"), range);
+                pbrShader.SetVec3(GetUniformName(index, "direction"), direction);
 
-        pbrShader.SetInt("u_lights[2].type", 0);
-        pbrShader.SetVec3("u_lights[2].position", glm::vec3(0.0f, -4.0f, 0.0f));
-        pbrShader.SetFloat("u_lights[2].intensity", 1024.0f);
-        pbrShader.SetVec3("u_lights[2].color", glm::vec3(0.4f, 0.8f, 0.4f));
-        pbrShader.SetFloat("u_lights[2].range", 1024.0f);
-
-        pbrShader.SetInt("u_lights[3].type", 1);
-        pbrShader.SetFloat("u_lights[3].intensity", 4.0f);
-        pbrShader.SetVec3("u_lights[3].color", glm::vec3(1.0f, 1.0f, 1.0f));
-        pbrShader.SetFloat("u_lights[3].range", 1024.0f);
-        pbrShader.SetVec3("u_lights[3].direction", glm::vec3(0.0f, 0.0f, -1.0f));
+                ++index;
+            }
+        }
 
         scene.Draw(pbrShader);
 
