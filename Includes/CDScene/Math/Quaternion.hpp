@@ -28,10 +28,87 @@ public:
 		return TQuaternion<T>(std::cos(halfAngle), axis.x() * sinHalfAngle, axis.y() * sinHalfAngle, axis.z() * sinHalfAngle);
 	}
 
-	//static TQuaternion<T> SphericalLerp(const TQuaternion<T>& a, const TQuaternion<T>& b, T s)
-	//{
-	//
-	//}
+	static TQuaternion<T> FromRollPitchYaw(T roll, T pitch, T yaw)
+	{
+		constexpr T Round = static_cast<T>(360);
+		const T rollNoWinding = std::fmod(roll, Round);
+
+		const T pitchNoWinding = std::fmod(pitch, Round);
+		const T yawNoWinding = std::fmod(yaw, Round);
+
+		T sinRoll = std::sin(Math::DegreeToRadian<T>(rollNoWinding) * 0.5f);
+		T cosRoll = std::cos(Math::DegreeToRadian<T>(rollNoWinding) * 0.5f);
+		T sinPitch = std::sin(Math::DegreeToRadian<T>(pitchNoWinding) * 0.5f);
+		T cosPitch = std::cos(Math::DegreeToRadian<T>(pitchNoWinding) * 0.5f);
+		T sinYaw = std::sin(Math::DegreeToRadian<T>(yawNoWinding) * 0.5f);
+		T cosYaw = std::cos(Math::DegreeToRadian<T>(yawNoWinding) * 0.5f);
+
+		return TQuaternion<T>(
+			cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw,
+			cosRoll * sinPitch * sinYaw - sinRoll * cosPitch * cosYaw,
+			-cosRoll * sinPitch * cosYaw - sinRoll * cosPitch * sinYaw,
+			cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw);
+	}
+
+	static TQuaternion<T> Lerp(const TQuaternion<T>& a, const TQuaternion<T>& b, T t)
+	{
+		constexpr T zero = static_cast<T>(0);
+		constexpr T one = static_cast<T>(1);
+		return b * t + a * Math::FloatSelect(a.Dot(b), one, -one) * (one - t);
+	}
+
+	static TQuaternion<T> LerpNormalized(const TQuaternion<T>& a, const TQuaternion<T>& b, T t)
+	{
+		return Lerp(a, b, t).Normalize();
+	}
+
+	static TQuaternion<T> BiLerp(const TQuaternion<T>& x0y0, const TQuaternion<T>& x1y0, const TQuaternion<T>& x0y1, const TQuaternion<T>& x1y1, T x, T y)
+	{
+		return Lerp(Lerp(x0y0, x1y0, x), Lerp(x0y1, x1y1, x), y);
+	}
+
+	static TQuaternion<T> BiLerpNormalized(const TQuaternion<T>& x0y0, const TQuaternion<T>& x1y0, const TQuaternion<T>& x0y1, const TQuaternion<T>& x1y1, T x, T y)
+	{
+		return BiLerp(x0y0, x1y0, x0y1, x1y1, x, y).Normalize();
+	}
+
+	// https://tiborstanko.sk/lerp-vs-slerp.html
+	static TQuaternion<T> SLerp(const TQuaternion<T>& a, const TQuaternion<T>& b, T t)
+	{
+		constexpr T one = static_cast<T>(1);
+
+		T rawCosAngle = a.x() * b.x() + a.y() * b.y() + a.z() * b.z() + a.w() * b.w();
+		T cosAngle = Math::FloatSelect(rawCosAngle, rawCosAngle, -rawCosAngle);
+
+		T scale0;
+		T scale1;
+
+		if (Math::IsSmallThanOne(cosAngle))
+		{
+			T omega = std::acos(cosAngle);
+			T inverseSin = one / std::sin(omega);
+			scale0 = std::sin((one - t) * omega) * inverseSin;
+			scale1 = std::sin(t * omega) * inverseSin;
+		}
+		else
+		{
+			// Linear interpolation.
+			scale0 = one - t;
+			scale1 = t;
+		}
+
+		scale1 = Math::FloatSelect(rawCosAngle, scale1, -scale1);
+		return TQuaternion<T>(
+			scale0 * a.w() + scale1 * b.w(),
+			scale0 * a.x() + scale1 * b.x(),
+			scale0 * a.y() + scale1 * b.y(),
+			scale0 * a.z() + scale1 * b.z());
+	}
+
+	static TQuaternion<T> SLerpNormalized(const TQuaternion<T>& a, const TQuaternion<T>& b, T t)
+	{
+		return SLerp(a, b, t).Normalize();
+	}
 
 	// "Quaternion Calculus and Fast Animation" Ken Shoemake, 1987 SIGGRAPH.
 	// intel report https://www.intel.com/content/dam/develop/external/us/en/documents/293748-142817.pdf.
@@ -102,7 +179,7 @@ public:
 	CD_FORCEINLINE T Data(int index) const { return *(Begin() + index); }
 	CD_FORCEINLINE T GetScalar() const { return m_scalar; }
 	CD_FORCEINLINE void SetScalar(T s) { m_scalar = s; }
-	CD_FORCEINLINE const T& GetVector() const { return m_vector; }
+	CD_FORCEINLINE const TVector<T, 3>& GetVector() const { return m_vector; }
 	CD_FORCEINLINE void SetVector(TVector<T, 3> v) { m_vector = cd::MoveTemp(v); }
 	CD_FORCEINLINE T x() const { return m_vector.x(); }
 	CD_FORCEINLINE T y() const { return m_vector.y(); }
@@ -114,7 +191,7 @@ public:
 	CD_FORCEINLINE T& w() { return m_scalar; }
 
 	// Validations
-	CD_FORCEINLINE bool isNaN() const { return std::isnan(m_scalar) || std::isnan(m_vector.x()) || std::isnan(m_vector.y()) || std::isnan(m_vector.z()); }
+	CD_FORCEINLINE bool IsNaN() const { return std::isnan(m_scalar) || std::isnan(m_vector.x()) || std::isnan(m_vector.y()) || std::isnan(m_vector.z()); }
 
 	// Conversions
 	TMatrix<T, 3, 3> ToMatrix3x3() const
@@ -217,7 +294,7 @@ public:
 	// Calculations
 	CD_FORCEINLINE TQuaternion<T> Inverse() const { return TQuaternion<T>(m_scalar, -m_vector); }
 	CD_FORCEINLINE T Dot(const TQuaternion& rhs) const { return m_scalar * rhs.m_scalar + m_vector.x() * rhs.m_vector.x() + m_vector.y() * rhs.m_vector.y() + m_vector.z() * rhs.m_vector.z(); }
-	CD_FORCEINLINE T LengthSqure() const { return m_scalar * m_scalar + m_vector.x() * m_vector.x() + m_vector.y() * m_vector.y() + m_vector.z() * m_vector.z();  }
+	CD_FORCEINLINE T LengthSqure() const { return Dot(*this);  }
 	CD_FORCEINLINE T Length() const { return std::sqrt(LengthSqure());  }
 	TQuaternion<T>& Normalize()
 	{
@@ -231,6 +308,7 @@ public:
 	CD_FORCEINLINE TQuaternion<T> operator+(const TQuaternion<T>& rhs) const { return TQuaternion<T>(m_scalar + rhs.m_scalar, m_vector + rhs.m_vector); }
 	CD_FORCEINLINE TQuaternion<T>& operator+=(const TQuaternion<T>& rhs) { m_scalar += rhs.m_scalar; m_vector += rhs.m_vector; return *this; }
 	
+	CD_FORCEINLINE TQuaternion<T> operator-() const { return TQuaternion<T>(-m_scalar, -m_vector.x(), -m_vector.y(), -m_vector.z()); }
 	CD_FORCEINLINE TQuaternion<T> operator-(const TQuaternion<T>& rhs) const { return TQuaternion<T>(m_scalar - rhs.m_scalar, m_vector - rhs.m_vector); }
 	CD_FORCEINLINE TQuaternion<T>& operator-=(const TQuaternion<T>& rhs) { m_scalar -= rhs.m_scalar; m_vector -= rhs.m_vector; return *this; }
 
@@ -238,7 +316,7 @@ public:
 	CD_FORCEINLINE TQuaternion<T> operator*(const TQuaternion<T>& rhs) const
 	{
 		return TQuaternion<T>(m_scalar * rhs.m_scalar - m_vector.Dot(rhs.m_vector),
-			m_scalar * rhs.m_vector + rhs.m_scalar * m_vector + m_vector.Cross(rhs.m_vector));
+				rhs.m_vector * m_scalar + m_vector * rhs.m_scalar + m_vector.Cross(rhs.m_vector));
 	}
 	CD_FORCEINLINE TVector<T, 3> operator*(const TVector<T, 3>& v) const
 	{

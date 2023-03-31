@@ -27,7 +27,7 @@ void GLConsumer::Execute(const cd::SceneDatabase *pSceneDatabase) {
 	for(uint32_t nodeIndex = 0; nodeIndex < nodeCount; ++nodeIndex) {
 		const cd::Node &node = pSceneDatabase->GetNode(nodeIndex);
 		printf("\n\tNode ID : %d\n", node.GetID().Data());
-		printf("\tNode Name : %s\n", node.GetName().c_str());
+		printf("\tNode Name : %s\n", node.GetName());
 		printf("\tParient ID : %d\n", node.GetParentID().Data());
 		if(node.GetChildCount()) {
 			printf("\tChild ID :");

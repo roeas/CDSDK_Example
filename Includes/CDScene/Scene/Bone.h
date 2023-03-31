@@ -31,8 +31,7 @@ public:
 	const BoneID& GetID() const;
 
 	void SetName(std::string name);
-	std::string& GetName();
-	const std::string& GetName() const;
+	const char* GetName() const;
 
 	void SetParentID(uint32_t parentID);
 	const BoneID& GetParentID() const;
@@ -41,6 +40,14 @@ public:
 	uint32_t GetChildCount() const;
 	std::vector<BoneID>& GetChildIDs();
 	const std::vector<BoneID>& GetChildIDs() const;
+
+	void SetOffset(Matrix4x4 offset);
+	Matrix4x4& GetOffset();
+	const Matrix4x4& GetOffset() const;
+
+	void SetTransform(Transform transform);
+	Transform& GetTransform();
+	const Transform& GetTransform() const;
 
 	Bone& operator<<(InputArchive& inputArchive);
 	Bone& operator<<(InputArchiveSwapBytes& inputArchive);

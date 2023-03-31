@@ -62,6 +62,19 @@ void Camera::ProcessMouseScroll(float yoffset) {
         m_zoom = 45.0f;
 }
 
+void Camera::FrameAll(const glm::vec3 &max, const glm::vec3 &min) {
+    const glm::vec3 &centre = (max + min) / 2.0f;
+    const glm::vec3 line = max - min;
+    const float length = (line.x + line.y + line.z) / 2.0f;
+    m_position = centre + glm::vec3(length, length, length);
+    m_front = glm::normalize(centre - m_position);
+    m_yaw = glm::atan(m_front.z, m_front.x);
+    m_pitch = glm::asin(m_front.y);
+
+    m_right = glm::normalize(glm::cross(m_front, m_worldUp));
+    m_up = glm::normalize(glm::cross(m_right, m_front));
+}
+
 void Camera::UpdateCameraVectors() {
     glm::vec3 front(1.0f);
     front.x = cos(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));

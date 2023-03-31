@@ -14,7 +14,7 @@ void ProcessInput(GLFWwindow* window, float deltaTime);
 void MouseCallback(GLFWwindow* window, double xIn, double yIn);
 void ScrollCallback(GLFWwindow* window, double xIn, double yIn);
 
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, -1.19f, 0.05f));
 
 int main()
 {
@@ -52,13 +52,17 @@ int main()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     Shader pbrShader("Shaders/vs_PBR.glsl", "Shaders/fs_PBR.glsl");
-    GLScene cdscene;
-    cdscene.LoadModel("Models/scene.cdbin");
-    cdscene.SetShader(pbrShader);
+    GLScene scene;
+    scene.LoadModel("Models/scene.cdbin");
+    scene.SetShader(pbrShader);
 
     float deltaTime = 0.0f;
     float lastFrameTime = 0.0f;
     while (!glfwWindowShouldClose(window)) {
+        printf("\nCamera pos: x: %f", camera.m_position.x);
+        printf(" y: %f", camera.m_position.y);
+        printf(" z: %f", camera.m_position.z);
+
         float crtTime = glfwGetTime();
         deltaTime = crtTime - lastFrameTime;
         lastFrameTime = crtTime;
@@ -68,7 +72,7 @@ int main()
         glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::mat4 projection = glm::perspective(glm::radians(camera.m_zoom), 800.0f / 600.0f, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(camera.m_zoom), 800.0f / 600.0f, 0.001f, 10000.0f);
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 model(1.0f);
         model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
@@ -104,7 +108,7 @@ int main()
         pbrShader.SetFloat("u_lights[3].range", 1024.0f);
         pbrShader.SetVec3("u_lights[3].direction", glm::vec3(0.0f, 0.0f, -1.0f));
 
-        cdscene.Draw(pbrShader);
+        scene.Draw(pbrShader);
 
         glfwPollEvents();
         glfwSwapBuffers(window);

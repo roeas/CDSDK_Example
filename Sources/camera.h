@@ -36,6 +36,8 @@ public:
     void ProcessMouseMovement(float xoffset, float yoffset);
     void ProcessMouseScroll(float yoffset);
 
+    void FrameAll(const glm::vec3 &max, const glm::vec3 &min);
+
     glm::vec3 m_position;
     glm::vec3 m_front;
     glm::vec3 m_up;
