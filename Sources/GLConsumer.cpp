@@ -21,128 +21,124 @@ void GLConsumer::Execute(const cd::SceneDatabase *pSceneDatabase) {
 		sceneAABB.Min().x(), sceneAABB.Min().y(), sceneAABB.Min().z(),
 		sceneAABB.Max().x(), sceneAABB.Max().y(), sceneAABB.Max().z());
 
-	m_meshes.resize(pSceneDatabase->GetMeshCount());
+	m_meshes.reserve(pSceneDatabase->GetMeshCount());
 
-	const uint32_t nodeCount = pSceneDatabase->GetNodeCount();
-	for(uint32_t nodeIndex = 0; nodeIndex < nodeCount; ++nodeIndex) {
-		const cd::Node &node = pSceneDatabase->GetNode(nodeIndex);
-		printf("\n\tNode ID : %d\n", node.GetID().Data());
-		printf("\tNode Name : %s\n", node.GetName());
-		printf("\tParient ID : %d\n", node.GetParentID().Data());
-		if(node.GetChildCount()) {
-			printf("\tChild ID :");
-			for(const auto &childID : node.GetChildIDs()) {
-				printf(" %d", childID.Data());
-			}
+	for(const auto &mesh : pSceneDatabase->GetMeshes()) {
+		printf("\t\tMesh ID : %d\n", mesh.GetID().Data());
+		printf("\t\tMesh Name : %s\n", mesh.GetName());
+		printf("\t\tVertex Count : %d\n", mesh.GetVertexCount());
+		printf("\t\tPolygon Count : %d\n", mesh.GetPolygonCount());
+
+		std::vector<GLVertex> vertices;
+		std::vector<unsigned int> indices;
+		std::vector<GLTexture> textures;
+
+		// 1. vertices
+		vertices.reserve(mesh.GetVertexCount());
+		for(uint32_t vertexIndex = 0; vertexIndex < mesh.GetVertexCount(); ++vertexIndex) {
+			const cd::Point &position = mesh.GetVertexPosition(vertexIndex);
+			const cd::Direction &normal = mesh.GetVertexNormal(vertexIndex);
+			const cd::Direction &tangent = mesh.GetVertexTangent(vertexIndex);
+			const cd::UV &uv = mesh.GetVertexUV(0, vertexIndex);
+			const cd::Direction &bitangent = mesh.GetVertexBiTangent(vertexIndex);
+
+			GLVertex vertex;
+			memcpy(&vertex.m_position, &position, 3 * sizeof(float));
+			memcpy(&vertex.m_normal, &normal, 3 * sizeof(float));
+			memcpy(&vertex.m_tangent, &tangent, 3 * sizeof(float));
+			memcpy(&vertex.m_texCoords, &uv, 2 * sizeof(float));
+			memcpy(&vertex.m_bitangent, &bitangent, 3 * sizeof(float));
+
+			vertices.emplace_back(std::move(vertex));
 		}
-		if(node.GetMeshCount()) {
-			printf("\tMesh Count : %d\n", node.GetMeshCount());
+
+		// 2. indices
+		indices.reserve(mesh.GetPolygonCount() * 3);
+		for(uint32_t i = 0; i < mesh.GetPolygonCount(); ++i) {
+			indices.push_back(mesh.GetPolygon(i)[0].Data());
+			indices.push_back(mesh.GetPolygon(i)[1].Data());
+			indices.push_back(mesh.GetPolygon(i)[2].Data());
 		}
-		printf("\n");
-		
-		const std::vector<cd::MeshID> &meshIDs = node.GetMeshIDs();
-		for(const auto &meshID : meshIDs) {
-			const cd::Mesh &mesh = pSceneDatabase->GetMesh(meshID.Data());
-			assert(meshID.Data() == mesh.GetID().Data());
 
-			printf("\t\tMesh ID : %d\n", mesh.GetID().Data());
-			printf("\t\tMesh Name : %s\n", mesh.GetName());
-			printf("\t\tVertex Count : %d\n", mesh.GetVertexCount());
-			printf("\t\tPolygon Count : %d\n", mesh.GetPolygonCount());
+		// 3. material
+		const cd::MaterialID &materialID = mesh.GetMaterialID();
+		printf("\t\t\tMaterial ID : %d\n", materialID.Data());
+		const cd::Material &material = pSceneDatabase->GetMaterial(materialID.Data());
+		assert(materialID.Data() == material.GetID().Data());
+		printf("\t\t\tMaterial name : %s\n", material.GetName());
 
-			std::vector<GLVertex> vertices;
-			std::vector<unsigned int> indices;
-			std::vector<GLTexture> textures;
+		const cd::PropertyMap &propertyGroups = material.GetPropertyGroups();
 
-			// 1. vertices
-			vertices.reserve(mesh.GetVertexCount());
-			for(uint32_t vertexIndex = 0; vertexIndex < mesh.GetVertexCount(); ++vertexIndex) {
-				const cd::Point &position = mesh.GetVertexPosition(vertexIndex);
-				const cd::Direction &normal = mesh.GetVertexNormal(vertexIndex);
-				const cd::Direction &tangent = mesh.GetVertexTangent(vertexIndex);
-				const cd::UV &uv = mesh.GetVertexUV(0, vertexIndex);
+		// printf("All keys :\n");
+		// for(const auto &key : propertyGroups.GetKeySetProperty()) {
+		// 	printf("%s\n", key.c_str());
+		// }
 
-				GLVertex vertex;
-				memcpy(&vertex.m_position, &position, 3 * sizeof(float));
-				memcpy(&vertex.m_normal, &normal, 3 * sizeof(float));
-				memcpy(&vertex.m_tangent, &tangent, 3 * sizeof(float));
-				memcpy(&vertex.m_texCoords, &uv, 2 * sizeof(float));
-
-				vertices.emplace_back(std::move(vertex));
-			}
-
-			// 2. indices
-			indices.reserve(mesh.GetPolygonCount() * 3);
-			for(uint32_t i = 0; i < mesh.GetPolygonCount(); ++i) {
-				indices.push_back(mesh.GetPolygon(i)[0].Data());
-				indices.push_back(mesh.GetPolygon(i)[1].Data());
-				indices.push_back(mesh.GetPolygon(i)[2].Data());
-			}
-
-			// 3. material
-			const cd::MaterialID &materialID = mesh.GetMaterialID();
-			printf("\t\t\tMaterial ID : %d\n", materialID.Data());
-			const cd::Material &material = pSceneDatabase->GetMaterial(materialID.Data());
-			assert(materialID.Data() == material.GetID().Data());
-			printf("\t\t\tMaterial name : %s\n", material.GetName());
-
-			const cd::PropertyMap &propertyGroups = material.GetPropertyGroups();
-
-			// printf("All keys :\n");
-			// for(const auto &key : propertyGroups.GetKeySetProperty()) {
-			// 	printf("%s\n", key.c_str());
-			// }
-
-			{
-				std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::BaseColor, cd::MaterialProperty::Factor);
-				const auto value = propertyGroups.Get<float>(key);
-				if(value.has_value()) { printf("\t\t\t%s : %f\n", key.c_str(), value.value()); }
-			}
-			{
-				std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::BaseColor, cd::MaterialProperty::UseTexture);
-				const auto value = propertyGroups.Get<bool>(key);
-				if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
-			}
-			{
-				std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::BaseColor, cd::MaterialProperty::Texture);
-				const auto value = propertyGroups.Get<uint32_t>(key);
-				if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
-			}
-			// For example :
-			// key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::Roughness, cd::MaterialProperty::Texture);
-			// key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::Metallic, cd::MaterialProperty::Texture);
-			// ...
-			{
-				std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::General, cd::MaterialProperty::EnableDirectionalLights);
-				const auto value = propertyGroups.Get<bool>(key);
-				if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
-			}
-			{
-				std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::General, cd::MaterialProperty::EnablePunctualLights);
-				const auto value = propertyGroups.Get<bool>(key);
-				if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
-			}
-			{
-				std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::General, cd::MaterialProperty::EnableAreaLights);
-				const auto value = propertyGroups.Get<bool>(key);
-				if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
-			}
-			{
-				std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::General, cd::MaterialProperty::EnableIBL);
-				const auto value = propertyGroups.Get<bool>(key);
-				if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
-			}
-
-			for(const cd::MaterialTextureType &textureType : PossibleTextureTypes) {
-				std::vector<GLTexture> typeTextures = LoadMaterialTextures(pSceneDatabase, material, textureType);
-				textures.insert(textures.end(), typeTextures.begin(), typeTextures.end());
-			}
-
-			// Use mesh id as GLMesh index.
-			assert(meshID.Data() < m_meshes.size());
-			m_meshes[meshID.Data()] = GLMesh(vertices, indices, textures);
+		{
+			std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::BaseColor, cd::MaterialProperty::Factor);
+			const auto value = propertyGroups.Get<float>(key);
+			if(value.has_value()) { printf("\t\t\t%s : %f\n", key.c_str(), value.value()); }
 		}
+		{
+			std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::BaseColor, cd::MaterialProperty::UseTexture);
+			const auto value = propertyGroups.Get<bool>(key);
+			if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
+		}
+		{
+			std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::BaseColor, cd::MaterialProperty::Texture);
+			const auto value = propertyGroups.Get<uint32_t>(key);
+			if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
+		}
+		// For example :
+		// key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::Roughness, cd::MaterialProperty::Texture);
+		// key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::Metallic, cd::MaterialProperty::Texture);
+		// ...
+		{
+			std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::General, cd::MaterialProperty::EnableDirectionalLights);
+			const auto value = propertyGroups.Get<bool>(key);
+			if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
+		}
+		{
+			std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::General, cd::MaterialProperty::EnablePunctualLights);
+			const auto value = propertyGroups.Get<bool>(key);
+			if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
+		}
+		{
+			std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::General, cd::MaterialProperty::EnableAreaLights);
+			const auto value = propertyGroups.Get<bool>(key);
+			if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
+		}
+		{
+			std::string key = cd::GetMaterialPropertyKey(cd::MaterialPropertyGroup::General, cd::MaterialProperty::EnableIBL);
+			const auto value = propertyGroups.Get<bool>(key);
+			if(value.has_value()) { printf("\t\t\t%s : %d\n", key.c_str(), value.value()); }
+		}
+
+		for(const cd::MaterialTextureType &textureType : PossibleTextureTypes) {
+			std::vector<GLTexture> typeTextures = LoadMaterialTextures(pSceneDatabase, material, textureType);
+			textures.insert(textures.end(), typeTextures.begin(), typeTextures.end());
+		}
+
+		m_meshes.emplace_back(GLMesh(vertices, indices, textures));
 	}
+
+	// const uint32_t nodeCount = pSceneDatabase->GetNodeCount();
+	// for(uint32_t nodeIndex = 0; nodeIndex < nodeCount; ++nodeIndex) {
+	// 	const cd::Node &node = pSceneDatabase->GetNode(nodeIndex);
+	// 	printf("\n\tNode ID : %d\n", node.GetID().Data());
+	// 	printf("\tNode Name : %s\n", node.GetName());
+	// 	printf("\tParient ID : %d\n", node.GetParentID().Data());
+	// 	if(node.GetChildCount()) {
+	// 		printf("\tChild ID :");
+	// 		for(const auto &childID : node.GetChildIDs()) {
+	// 			printf(" %d", childID.Data());
+	// 		}
+	// 	}
+	// 	if(node.GetMeshCount()) {
+	// 		printf("\tMesh Count : %d\n", node.GetMeshCount());
+	// 	}
+	// 	printf("\n");
+	// }
 }
 
 std::vector<GLTexture> GLConsumer::LoadMaterialTextures(const cd::SceneDatabase* pSceneDatabase, const cd::Material& material, const cd::MaterialTextureType textureType) {

@@ -14,27 +14,23 @@ void ProcessInput(GLFWwindow* window, float deltaTime);
 void MouseCallback(GLFWwindow* window, double xIn, double yIn);
 void ScrollCallback(GLFWwindow* window, double xIn, double yIn);
 
-Camera camera(glm::vec3(0.0f, -1.19f, 0.05f));
-
-void AddLight(cd::SceneDatabase *pScene) {
-    cd::Light point(cd::LightID(0), cd::LightType::Point);
-    point.SetPosition(cd::Point(0.0f, -4.0f, 0.0f));
-    point.SetIntensity(1024.0f);
-    point.SetColor(cd::Vec3f(0.8f, 0.4f, 0.4f));
-    point.SetRange(1024.0f);
-    pScene->AddLight(std::move(point));
-
-    cd::Light directional(cd::LightID(0), cd::LightType::Directional);
-    directional.SetDirection(cd::Direction(0.0f, 0.0f, -1.0f));
-    directional.SetIntensity(4.0f);
-    directional.SetColor(cd::Vec3f(1.0f, 1.0f, 1.0f));
-    pScene->AddLight(std::move(directional));
-}
+Camera g_camera;
 
 std::string GetUniformName(const uint32_t index, const char *member) {
     std::stringstream ss;
     ss << "u_lights[" << index << "]." << member;
     return ss.str();
+}
+
+void SetupCamera(const cd::SceneDatabase *pScene) {
+    if(pScene->GetCameraCount()) {
+        const auto &sceneCamera = pScene->GetCamera(0);
+        const auto &position = sceneCamera.GetEye();
+        const auto &lookAt = sceneCamera.GetLookAt();
+
+        g_camera.m_position = { position.x(), position.y(), position.z() };
+        g_camera.LookAt({ lookAt.x(), lookAt.y(), lookAt.z() });
+    }
 }
 
 int main()
@@ -77,14 +73,18 @@ int main()
     scene.LoadModel("Models/scene.cdbin");
     scene.SetShader(pbrShader);
 
-    AddLight(scene.GetSene());
+    SetupCamera(scene.GetSene());
+
+    //const auto &aabbMax = scene.GetSene()->GetAABB().Max();
+    //const auto &aabbMin = scene.GetSene()->GetAABB().Min();
+    //g_camera.FrameAll({ aabbMax.x(), aabbMax.y(), aabbMax.z() }, { aabbMin.x(), aabbMin.y(), aabbMin.z() });
 
     float deltaTime = 0.0f;
     float lastFrameTime = 0.0f;
     while (!glfwWindowShouldClose(window)) {
-        // printf("\nCamera pos: x: %f", camera.m_position.x);
-        // printf(" y: %f", camera.m_position.y);
-        // printf(" z: %f", camera.m_position.z);
+        printf("\nCamera pos: x: %f", g_camera.m_position.x);
+        printf(" y: %f", g_camera.m_position.y);
+        printf(" z: %f", g_camera.m_position.z);
 
         float crtTime = glfwGetTime();
         deltaTime = crtTime - lastFrameTime;
@@ -95,12 +95,12 @@ int main()
         glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::mat4 projection = glm::perspective(glm::radians(camera.m_zoom), 800.0f / 600.0f, 0.001f, 10000.0f);
-        glm::mat4 view = camera.GetViewMatrix();
+        glm::mat4 projection = glm::perspective(glm::radians(g_camera.m_zoom), 800.0f / 600.0f, 0.001f, 10000.0f);
+        glm::mat4 view = g_camera.GetViewMatrix();
         glm::mat4 model(1.0f);
         model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
         model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0, 1.0, 0.0));
-        model = glm::translate(model, glm::vec3(0.0f, -3.0f, 0.0f));
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
 
         pbrShader.Use();
         pbrShader.SetMat4("projection", projection);
@@ -148,17 +148,17 @@ void ProcessInput(GLFWwindow* window, float deltaTime) {
         glfwSetWindowShouldClose(window, true);
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, deltaTime);
+        g_camera.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
+        g_camera.ProcessKeyboard(BACKWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, deltaTime);
+        g_camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, deltaTime);
+        g_camera.ProcessKeyboard(RIGHT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        camera.ProcessKeyboard(UP, deltaTime);
+        g_camera.ProcessKeyboard(UP, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        camera.ProcessKeyboard(DOWN, deltaTime);
+        g_camera.ProcessKeyboard(DOWN, deltaTime);
 }
 
 void MouseCallback(GLFWwindow* window, double crt_x, double crt_y) {
@@ -171,9 +171,9 @@ void MouseCallback(GLFWwindow* window, double crt_x, double crt_y) {
     last_x = crt_x;
     last_y = crt_y;
 
-    camera.ProcessMouseMovement(delta_x, delta_y);
+    g_camera.ProcessMouseMovement(delta_x, delta_y);
 }
 
 void ScrollCallback(GLFWwindow* window, double xIn, double yIn) {
-    camera.ProcessMouseScroll(static_cast<float>(yIn));
+    g_camera.ProcessMouseScroll(static_cast<float>(yIn));
 }

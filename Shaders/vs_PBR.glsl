@@ -4,6 +4,7 @@ layout (location = 0) in vec3 a_position;
 layout (location = 1) in vec3 a_normal;
 layout (location = 2) in vec2 a_texcoord0;
 layout (location = 3) in vec3 a_tangent;
+layout (location = 4) in vec3 a_bitangent;
 
 
 out vec3 v_worldPos;
@@ -25,7 +26,7 @@ void main()
 	mat3 modelInvTrans = mat3(transpose(inverse(model)));
 	v_normal    = normalize(modelInvTrans * a_normal);
 	v_tangent   = normalize(modelInvTrans * a_tangent);
-	v_bitangent = normalize(cross(v_normal, v_tangent));
+	v_bitangent = normalize(modelInvTrans * a_bitangent);
 	
 	v_texcoord0 = a_texcoord0;
 }

@@ -38,6 +38,8 @@ public:
 
     void FrameAll(const glm::vec3 &max, const glm::vec3 &min);
 
+    void LookAt(const glm::vec3 &front);
+
     glm::vec3 m_position;
     glm::vec3 m_front;
     glm::vec3 m_up;

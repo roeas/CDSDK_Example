@@ -71,5 +71,9 @@ void GLMesh::SetupMesh() {
     glEnableVertexAttribArray(3);
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(GLVertex), (void *)offsetof(GLVertex, m_tangent));
     
+    // Bitangent
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(GLVertex), (void *)offsetof(GLVertex, m_bitangent));
+
     glBindVertexArray(0);
 }
