@@ -75,16 +75,12 @@ int main()
 
     SetupCamera(scene.GetSene());
 
-    //const auto &aabbMax = scene.GetSene()->GetAABB().Max();
-    //const auto &aabbMin = scene.GetSene()->GetAABB().Min();
-    //g_camera.FrameAll({ aabbMax.x(), aabbMax.y(), aabbMax.z() }, { aabbMin.x(), aabbMin.y(), aabbMin.z() });
-
     float deltaTime = 0.0f;
     float lastFrameTime = 0.0f;
     while (!glfwWindowShouldClose(window)) {
-        printf("\nCamera pos: x: %f", g_camera.m_position.x);
-        printf(" y: %f", g_camera.m_position.y);
-        printf(" z: %f", g_camera.m_position.z);
+        // printf("\nCamera pos: x: %f", g_camera.m_position.x);
+        // printf(" y: %f", g_camera.m_position.y);
+        // printf(" z: %f", g_camera.m_position.z);
 
         float crtTime = glfwGetTime();
         deltaTime = crtTime - lastFrameTime;

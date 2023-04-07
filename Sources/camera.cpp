@@ -77,8 +77,8 @@ void Camera::FrameAll(const glm::vec3 &max, const glm::vec3 &min) {
 
 void Camera::LookAt(const glm::vec3 &front) {
     m_front = glm::normalize(front);
-    m_yaw = glm::atan(m_front.z, m_front.x);
-    m_pitch = glm::asin(m_front.y);
+    m_yaw = glm::degrees(glm::atan(m_front.z, m_front.x));
+    m_pitch = glm::degrees(glm::asin(m_front.y));
 
     UpdateCameraVectors();
 }
