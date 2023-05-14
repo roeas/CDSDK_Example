@@ -25,10 +25,10 @@ public:
 	using ConstIterator = const T*;
 
 public:
-	static VectorType Zero() { return VectorType(static_cast<T>(0)); }
-	static VectorType One() { return VectorType(static_cast<T>(1)); }
+	static constexpr VectorType Zero() { return VectorType(static_cast<T>(0)); }
+	static constexpr VectorType One() { return VectorType(static_cast<T>(1)); }
 
-	static VectorType Lerp(const VectorType& a, const VectorType& b, float factor)
+	static VectorType Lerp(const VectorType& a, const VectorType& b, T factor)
 	{
 		return a + (b - a) * factor;
 	}
@@ -151,7 +151,21 @@ public:
 	CD_FORCEINLINE constexpr TVector<T, 3> xyz() const { static_assert(3 <= N); return TVector<T, 3>(x(), y(), z()); }
 
 	// Validation
-	CD_FORCEINLINE bool IsNaN() const { return std::isnan(x()) || std::isnan(y()) || std::isnan(z()); }
+	CD_FORCEINLINE bool IsNaN() const
+	{
+		if constexpr (2 == N)
+		{
+			return std::isnan(x()) || std::isnan(y());
+		}
+		else if constexpr (3 == N)
+		{
+			return std::isnan(x()) || std::isnan(y()) || std::isnan(z());
+		}
+		else if constexpr (4 == N)
+		{
+			return std::isnan(x()) || std::isnan(y()) || std::isnan(z() || std::isnan(w()));
+		}
+	}
 	CD_FORCEINLINE bool IsZero() const
 	{
 		if constexpr (2 == N)
@@ -166,6 +180,19 @@ public:
 		{
 			return Math::IsEqualToZero(x()) && Math::IsEqualToZero(y()) && Math::IsEqualToZero(z()) && Math::IsEqualToZero(w());
 		}
+	}
+
+	CD_FORCEINLINE bool Contains(T value) const
+	{
+		for (size_t index = 0; index < N; ++index)
+		{
+			if (Math::IsEqualTo(data[index], value))
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	// Calculation
@@ -215,7 +242,7 @@ public:
 	}
 
 	// Operators
-	CD_FORCEINLINE bool operator!=(const TVector& rhs) const { return !this == rhs; }
+	CD_FORCEINLINE bool operator!=(const TVector& rhs) const { return !(*this == rhs); }
 	bool operator==(const TVector& rhs) const
 	{
 		for (int index = 0; index < Size; ++index)
@@ -308,6 +335,7 @@ using Point = Vec3f;
 using Direction = Vec3f;
 using Color = Vec4f;
 using UV = Vec2f;
+using RGB = Vec3f;
 
 static_assert(2 * sizeof(float) == sizeof(Vec2f));
 static_assert(3 * sizeof(float) == sizeof(Vec3f));
