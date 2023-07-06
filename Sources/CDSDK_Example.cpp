@@ -88,7 +88,7 @@ int main()
 
         ProcessInput(window, deltaTime);
 
-        glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
+        glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::mat4 projection = glm::perspective(glm::radians(g_camera.m_zoom), 800.0f / 600.0f, 0.001f, 10000.0f);
@@ -102,6 +102,7 @@ int main()
         pbrShader.SetMat4("projection", projection);
         pbrShader.SetMat4("view", view);
         pbrShader.SetMat4("model", model);
+        pbrShader.SetVec3("u_cameraPos", g_camera.m_position);
 
         const cd::SceneDatabase *pScene = scene.GetSene();
         if(pScene->GetLightCount()) {

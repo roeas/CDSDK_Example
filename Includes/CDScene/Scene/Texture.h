@@ -17,31 +17,66 @@ class TextureImpl;
 class CORE_API Texture final
 {
 public:
+	static const char* GetClassName() { return "Texture"; }
+
+public:
 	Texture() = delete;
 	explicit Texture(InputArchive& inputArchive);
 	explicit Texture(InputArchiveSwapBytes& inputArchive);
-	explicit Texture(TextureID textureID, MaterialTextureType textureType, const char* pTexturePath);
+	explicit Texture(TextureID textureID, const char* pName, MaterialTextureType textureType);
 	Texture(const Texture&) = delete;
 	Texture& operator=(const Texture&) = delete;
 	Texture(Texture&&) noexcept;
 	Texture& operator=(Texture&&) noexcept;
 	~Texture();
 
-	void Init(TextureID textureID, MaterialTextureType textureType, const char* pTexturePath);
+	TextureID GetID() const;
+	
+	const char* GetName() const;
+	void SetName(const char* pName);
 
-	void SetRawTexture(const std::vector<uint32_t>& inputData, const cd::TextureFormat format, uint32_t width, uint32_t height);
-	void SetRawTexture(const std::vector<int32_t>& inputData, const cd::TextureFormat format, uint32_t width, uint32_t height);
-	void ClearRawTexture();
-	bool HasRawTexture() const;
-
-	const TextureID& GetID() const;
 	cd::MaterialTextureType GetType() const;
-	const char* GetPath() const;
-	const cd::TextureFormat GetTextureFormat() const;
-	const std::vector<std::byte>& GetRawTexture() const;
-	uint32_t GetWidth() const;
-	uint32_t GetHeight() const;
+	void SetType(MaterialTextureType type);
 
+	// Texture sampler data
+	cd::TextureMapMode GetUMapMode() const;
+	void SetUMapMode(cd::TextureMapMode mapMode);
+
+	cd::TextureMapMode GetVMapMode() const;
+	void SetVMapMode(cd::TextureMapMode mapMode);
+
+	const cd::Vec2f& GetUVOffset() const;
+	void SetUVOffset(cd::Vec2f uvOffset);
+
+	const cd::Vec2f& GetUVScale() const;
+	void SetUVScale(cd::Vec2f uvScale);
+
+	// File texture data
+	const char* GetPath() const;
+	void SetPath(const char* pFilePath);
+
+	// Texture performance data
+	bool UseMipMap() const;
+	void SetUseMipMap(bool use);
+
+	void SetFormat(cd::TextureFormat format);
+	cd::TextureFormat GetFormat() const;
+
+	// Detailed texture data
+	uint32_t GetWidth() const;
+	void SetWidth(uint32_t width);
+
+	uint32_t GetHeight() const;
+	void SetHeight(uint32_t height);
+
+	uint32_t GetDepth() const;
+	void SetDepth(uint32_t depth);
+
+	const std::vector<std::byte>& GetRawData() const;
+	void SetRawData(std::vector<std::byte> rawData);
+	void ClearRawData();
+	bool ExistRawData() const;
+	
 	Texture& operator<<(InputArchive& inputArchive);
 	Texture& operator<<(InputArchiveSwapBytes& inputArchive);
 	const Texture& operator>>(OutputArchive& outputArchive) const;

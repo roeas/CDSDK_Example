@@ -7,7 +7,7 @@
 
 #define D_LIGHT_COUNT 4
 #define T_POINT_LIGHT 0
-#define T_DIRECTIONAL_LIGHT 1
+#define T_DIRECTIONAL_LIGHT 2
 
 out vec4 fragColor;
 
@@ -214,7 +214,7 @@ void main()
 	// ----------------------------------- Environment Light ----------------------------------------
 	
 	// Environment Prefiltered Irradiance
-	vec3 envIrradiance = toLinear(texture(s_texCubeIrr, material.normal).xyz);
+	vec3 envIrradiance = vec3(0.1);
 	
 	// Environment Specular BRDF
 	vec2 lut = texture(s_texLUT, vec2(NdotV, 1.0 - material.roughness)).xy;
@@ -223,7 +223,7 @@ void main()
 	// Environment Specular Radiance
 	vec3 reflectDir = normalize(reflect(-viewDir, material.normal));
 	float mip = clamp(6.0 * material.roughness, 0.1, 6.0);
-	vec3 envRadiance = toLinear(textureLod(s_texCube, reflectDir, mip).xyz);
+	vec3 envRadiance = vec3(0.1);
 	
 	// Occlusion
 	float specularOcclusion = mix(pow(material.occlusion, 4.0), 1.0, clamp(-0.3 + NdotV * NdotV, 0.0, 1.0));

@@ -26,6 +26,9 @@ class SceneDatabaseImpl;
 class CORE_API SceneDatabase final
 {
 public:
+	static const char* GetClassName() { return "SceneDatabase"; }
+
+public:
 	explicit SceneDatabase();
 	SceneDatabase(const SceneDatabase&) = default;
 	SceneDatabase& operator=(const SceneDatabase&) = default;
@@ -90,6 +93,7 @@ public:
 	std::vector<Texture>& GetTextures();
 	const std::vector<Texture>& GetTextures() const;
 	void SetTextureCount(uint32_t textureCount);
+	Texture& GetTexture(uint32_t index);
 	const Texture& GetTexture(uint32_t index) const;
 	uint32_t GetTextureCount() const;
 
